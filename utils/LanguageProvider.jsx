@@ -9,49 +9,98 @@ import {
 
 const LanguageContext = createContext(null);
 
-let currentLanguage = "en";
+let currentUiLanguage = "en";
+let currentCardLanguage = "en";
 
 export const getLanguage = () => {
   if (typeof window !== "undefined") {
-    return localStorage.getItem("lang") || currentLanguage;
+    return (
+      localStorage.getItem("uiLang") ||
+      localStorage.getItem("lang") ||
+      currentUiLanguage
+    );
   }
 
-  return currentLanguage;
+  return currentUiLanguage;
+};
+
+export const getCardLanguage = () => {
+  if (typeof window !== "undefined") {
+    return (
+      localStorage.getItem("cardLang") ||
+      currentCardLanguage
+    );
+  }
+
+  return currentCardLanguage;
 };
 
 export const setLanguageValue = (lang) => {
-  currentLanguage = lang;
+  currentUiLanguage = lang;
 
   if (typeof window !== "undefined") {
+    localStorage.setItem("uiLang", lang);
+
+    // 기존 버전과 호환하기 위해 당분간 유지
     localStorage.setItem("lang", lang);
+
     document.documentElement.lang = lang;
   }
 };
 
+export const setCardLanguageValue = (lang) => {
+  currentCardLanguage = lang;
+
+  if (typeof window !== "undefined") {
+    localStorage.setItem("cardLang", lang);
+  }
+};
+
 export function LanguageProvider({ children }) {
-  const [lang, setLangState] = useState("en");
+  const [uiLang, setUiLangState] = useState("en");
+  const [cardLang, setCardLangState] = useState("en");
 
   useEffect(() => {
-    const savedLang = localStorage.getItem("lang") || "en";
+    const savedUiLang =
+      localStorage.getItem("uiLang") ||
+      localStorage.getItem("lang") ||
+      "en";
 
-    currentLanguage = savedLang;
+    const savedCardLang =
+      localStorage.getItem("cardLang") ||
+      savedUiLang;
 
-    setLangState(savedLang);
+    currentUiLanguage = savedUiLang;
+    currentCardLanguage = savedCardLang;
 
-    document.documentElement.lang = savedLang;
+    setUiLangState(savedUiLang);
+    setCardLangState(savedCardLang);
+
+    document.documentElement.lang = savedUiLang;
   }, []);
 
-  const setLang = (newLang) => {
+  const setUiLang = (newLang) => {
     setLanguageValue(newLang);
+    setUiLangState(newLang);
+  };
 
-    setLangState(newLang);
+  const setCardLang = (newLang) => {
+    setCardLanguageValue(newLang);
+    setCardLangState(newLang);
   };
 
   return (
     <LanguageContext.Provider
       value={{
-        lang,
-        setLang,
+        uiLang,
+        setUiLang,
+
+        cardLang,
+        setCardLang,
+
+        // 기존 코드가 아직 lang을 사용하므로 임시 호환
+        lang: uiLang,
+        setLang: setUiLang,
       }}
     >
       {children}
