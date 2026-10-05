@@ -36,7 +36,7 @@ const version = process.env.TEMPLATE_VERSION;
 
 export default function NavBar() {
     const { theme, toggleTheme } = useTheme();
-    const { lang, setLang } = useLang();
+    const { lang, setLang, cardLang, setCardLang } = useLang();
 
     const t = TextPreset.EditNav;
 
@@ -265,6 +265,12 @@ export default function NavBar() {
                                 {lang}
                             </span>
 
+                            {" / "}
+
+                            <span className="uppercase">
+                                {cardLang}
+                            </span>
+
                             {" "}
                             {version}
                         </span>
@@ -281,6 +287,31 @@ export default function NavBar() {
                             label: `ไทย ${lang === "th" ? t.Current[lang] : ""}`,
                             disabled: lang === "th",
                             onClick: () => setLang("th"),
+                        },
+
+                        {
+                            section: "Card Language",
+                            label: `English ${cardLang === "en" ? t.Current[lang] : ""}`,
+                            disabled: cardLang === "en",
+                            onClick: () => setCardLang("en"),
+                        },
+                        {
+                            section: "Card Language",
+                            label: `한국어 ${cardLang === "ko" ? t.Current[lang] : ""}`,
+                            disabled: cardLang === "ko",
+                            onClick: () => setCardLang("ko"),
+                        },
+                        {
+                            section: "Card Language",
+                            label: `日本語[임시] ${cardLang === "ja" ? t.Current[lang] : ""}`,
+                            disabled: cardLang === "ja",
+                            onClick: () => setCardLang("ja"),
+                        },
+                        {
+                            section: "Card Language",
+                            label: `ไทย ${cardLang === "th" ? t.Current[lang] : ""}`,
+                            disabled: cardLang === "th",
+                            onClick: () => setCardLang("th"),
                         }
                     ]}
                 />

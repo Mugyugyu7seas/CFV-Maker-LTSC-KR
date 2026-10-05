@@ -7,7 +7,7 @@ import CardEditor from '../../../components/editor/CardEditor';
 import { previewZip } from '../../../utils/CardIO';
 
 export default function Workspace() {
-    const { lang } = useLang();
+    const { lang, cardLang } = useLang();
     const { state, setField, setMultiple, setImageConfig } = useCardState();
 
     const t = TextPreset.Extra;
@@ -113,8 +113,8 @@ export default function Workspace() {
             <div className="relative group max-w-full flex items-center justify-center m-auto">
                 <div className={`${isCrest ? "scale-[0.68]" : "scale-[0.75]"} bottom-10 sm:scale-90 md:scale-100 md:bottom-0 origin-center relative shadow-2xl bg-transparent transition-transform duration-300`}>
                     <CardEditor
-                        key={lang}
-                        lang={lang}
+                        key={cardLang}
+                        lang={cardLang}
                         overlayCardName={isEnergy ? t.Energy[lang] : isRideDeck ? t.Generator[lang] : state.cardName}
                         overlayNation={state.selectedNation}
                         overlayClan={state.clan}
