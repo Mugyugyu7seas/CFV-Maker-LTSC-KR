@@ -1,6 +1,7 @@
 "use client";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import { normalizeCardData } from "./CardFormat";
 const version = process.env.TEMPLATE_VERSION;
 
 export const imageSrcToPngBlob = async (imageSrc) => {
@@ -40,7 +41,7 @@ export const exportCardToZip = async (cardData, imageSrc, imageConfig, cardName,
       version: version,
       exportedAt: new Date().toISOString(),
       card: {
-        ...cardData,
+        ...normalizeCardData(cardData),
         imageConfig: {
           scale: imageConfig.scale,
           x: imageConfig.x,
@@ -112,6 +113,8 @@ export const previewZip = async (zipFile) => {
       isOldStructure = true;
     }
 
+    const cardData = normalizeCardData(data.card);
+
     let imageUrl = null;
     const imageFile = zip.file("image.png");
     if (imageFile) {
@@ -149,11 +152,11 @@ export const previewZip = async (zipFile) => {
 
     return {
       success: true,
-      cardName: data.card?.cardName || "Untitled",
+      cardName: cardData.cardName || "Untitled",
       hasImage: !!zip.file("image.png"),
       version: data.version,
       exportedAt: data.exportedAt,
-      rawData: data.card,
+      rawData: cardData,
       imageUrl,
       customLayerUrls
     };
@@ -179,12 +182,12 @@ export const importCardFromZip = async (zipFile) => {
     if (configFile) {
       const text = await configFile.async("string");
       const data = JSON.parse(text);
-      cardData = data.card;
+      cardData = normalizeCardData(data.card);
       imageConfig = data.card?.imageConfig;
     } else if (abilitiesFile) {
       const text = await abilitiesFile.async("string");
       const data = JSON.parse(text);
-      cardData = data.card;
+      cardData = normalizeCardData(data.card);
       imageConfig = data.card?.imageConfig;
     }
 

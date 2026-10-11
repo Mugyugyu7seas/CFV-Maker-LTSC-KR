@@ -8,7 +8,8 @@ export function ParseTokens(text, ICON_CONFIG, darkMode = false, inheritedStyles
   let currentStyles = {
     underline: inheritedStyles.underline || false,
     color: inheritedStyles.color || null,
-    italic: inheritedStyles.italic || false
+    italic: inheritedStyles.italic || false,
+    annotation: inheritedStyles.annotation || false
   };
 
   while (i < text.length) {
@@ -43,7 +44,8 @@ export function ParseTokens(text, ICON_CONFIG, darkMode = false, inheritedStyles
             ...currentStyles,
             color: darkMode ? "#c0c0c0" : "#525252",
             italic: true,
-            underline: true
+            underline: true,
+           annotation: true
           }
         );
         tokens.push(...innerTokens);
@@ -62,7 +64,7 @@ export function ParseTokens(text, ICON_CONFIG, darkMode = false, inheritedStyles
           text.slice(i + 3, end),
           ICON_CONFIG,
           darkMode,
-          { ...currentStyles, color: "#ff0000", italic: true }
+          { ...currentStyles, color: "#ff0000", italic: true, annotation: true }
         );
         tokens.push(...innerTokens);
         i = end + 3;
@@ -121,7 +123,8 @@ export function ParseTokens(text, ICON_CONFIG, darkMode = false, inheritedStyles
           {
             ...currentStyles,
             color: darkMode ? "#c0c0c0" : "#525252",
-            italic: true
+            italic: true,
+            annotation: true
           }
         );
         tokens.push(...innerTokens);
@@ -134,7 +137,8 @@ export function ParseTokens(text, ICON_CONFIG, darkMode = false, inheritedStyles
             text: "*",
             color: currentStyles.color || (darkMode ? "white" : "black"),
             italic: currentStyles.italic,
-            underline: currentStyles.underline
+            underline: currentStyles.underline,
+            annotation: currentStyles.annotation
           }]
         });
         i++;
@@ -163,6 +167,7 @@ export function ParseTokens(text, ICON_CONFIG, darkMode = false, inheritedStyles
             value: match[1],
             config: { ...config, name: prefix },
             underline: currentStyles.underline,
+            annotation: currentStyles.annotation,
             color: currentStyles.color,
             italic: currentStyles.italic
           });
@@ -187,6 +192,7 @@ export function ParseTokens(text, ICON_CONFIG, darkMode = false, inheritedStyles
             src: config.baseSrc,
             config: config,
             underline: currentStyles.underline,
+            annotation: currentStyles.annotation,
             color: currentStyles.color,
             italic: currentStyles.italic
           });
@@ -198,7 +204,8 @@ export function ParseTokens(text, ICON_CONFIG, darkMode = false, inheritedStyles
                 text: prefix[c],
                 color: currentStyles.color || (darkMode ? "white" : "black"),
                 italic: currentStyles.italic,
-                underline: currentStyles.underline
+                underline: currentStyles.underline,
+                annotation: currentStyles.annotation
               }]
             });
           }
@@ -231,6 +238,7 @@ export function ParseTokens(text, ICON_CONFIG, darkMode = false, inheritedStyles
           src: ICON_CONFIG.exact[key].src + (presetName ? "@" + presetName : ""),
           meta: ICON_CONFIG.exact[key],
           underline: currentStyles.underline,
+          annotation: currentStyles.annotation,
           color: currentStyles.color,
           italic: currentStyles.italic
         });
@@ -284,7 +292,8 @@ export function ParseTokens(text, ICON_CONFIG, darkMode = false, inheritedStyles
           text: text.slice(i, j),
           color: currentStyles.color || (darkMode ? "white" : "black"),
           italic: currentStyles.italic,
-          underline: currentStyles.underline
+          underline: currentStyles.underline,
+          annotation: currentStyles.annotation
         }]
       });
       i = j;

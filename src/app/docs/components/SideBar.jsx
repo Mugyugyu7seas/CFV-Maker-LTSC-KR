@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { useLang } from '../../../../utils/LanguageProvider';
+
 import { TextPreset } from '../../../../utils/store/Text';
 
 import {
@@ -22,9 +22,9 @@ export default function SideBar({
   sidebarOpen,
   setSidebarOpen,
 }) {
-  const { lang } = useLang();
+
   const t = TextPreset.SideBar;
-  
+
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -45,19 +45,19 @@ export default function SideBar({
       items: [
         {
           id: "intro",
-          label: t.Introduction[lang],
+          label: t.Introduction,
           icon: <InfoIcon size={18} />,
           path: "intro",
         },
         {
           id: "quickstart",
-          label: t.QuickStart[lang],
+          label: t.QuickStart,
           icon: <PlayIcon size={18} />,
           path: "quickstart",
         },
         {
           id: "tou",
-          label: t.TermsOfUse[lang],
+          label: t.TermsOfUse,
           icon: <LegalIcon size={18} />,
           path: "tou",
         },
@@ -70,19 +70,19 @@ export default function SideBar({
       items: [
         {
           id: "text-decoration",
-          label: t.TextDecoration[lang],
+          label: t.TextDecoration,
           icon: <TextIcon size={18} />,
           path: "text-decoration",
         },
         {
           id: "icons-symbols",
-          label: t.IconsSymbols[lang],
+          label: t.IconsSymbols,
           icon: <IconSymbolIcon size={18} />,
           path: "icons-symbols",
         },
         {
           id: "keywords",
-          label: t.Keywords[lang],
+          label: t.Keywords,
           icon: <KeywordIcon size={18} />,
           path: "keywords",
         },
@@ -95,13 +95,13 @@ export default function SideBar({
       items: [
         {
           id: "importexport",
-          label: t.ImportExport[lang],
+          label: t.ImportExport,
           icon: <DownloadIcon size={18} />,
           path: "importexport",
         },
         {
           id: "iconpacks",
-          label: t.IconPacks[lang],
+          label: t.IconPacks,
           icon: <IconPack size={18} />,
           path: "iconpacks",
         },
@@ -114,7 +114,7 @@ export default function SideBar({
       items: [
         {
           id: "keybinds",
-          label: t.Keybinds[lang],
+          label: t.Keybinds,
           icon: <KeyboardIcon size={18} />,
           path: "keybinds",
         },

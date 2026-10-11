@@ -1,3 +1,4 @@
+const { Readable } = require('node:stream');
 const { app, BrowserWindow, protocol, net, Menu, ipcMain, nativeTheme, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -235,7 +236,8 @@ app.whenReady().then(() => {
 
       const mimeType = getMimeType(filePath);
       const stream = fs.createReadStream(filePath);
-      return new Response(stream, {
+
+      return new Response(Readable.toWeb(stream), {
         headers: { 'content-type': mimeType }
       });
     };

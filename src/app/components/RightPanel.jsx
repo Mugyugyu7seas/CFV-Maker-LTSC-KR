@@ -1,11 +1,14 @@
+// CFV ride-deck explanations control v1
 "use client"
 import React, { useState } from 'react';
 
-import { useLang } from '../../../utils/LanguageProvider';
+
 import { useCardState } from '../../../utils/store/State';
 
 import TextArea from '../../../components/TextArea';
+import AbilityBlocksEditor from '../../../components/AbilityBlocksEditor';
 import UploadGroup from '../../../components/custom/Icon/UploadGroup';
+import RideDeckExplanationsControl from '../../../components/RideDeckExplanationsControl';
 
 import { TextPreset } from '../../../utils/store/Text';
 
@@ -15,8 +18,8 @@ import {
 } from '../../../components/Icon';
 
 export default function RightPanel() {
-    const { lang } = useLang();
-    const { state, setField } = useCardState();
+
+    const { state, setField, setAbilityBlocks } = useCardState();
     const [isOpen, setIsOpen] = useState(false);
 
     const t = TextPreset.RightPanel;
@@ -61,7 +64,7 @@ export default function RightPanel() {
                         <h2 className="hidden md:block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Abilities & Flavor</h2>
                         <div className="flex flex-col gap-2">
                             <div className={`${(isMarker || isEnergy || isCrest) ? "hidden" : "flex-1"}`}>
-                                <label className="block text-sm font-medium text-(--text-secondary) mb-1">{t.Flavor[lang]}</label>
+                                <label className="block text-sm font-medium text-(--text-secondary) mb-1">{t.Flavor}</label>
                                 <TextArea
                                     disabled={state.isFullArt}
                                     value={state.flavor}
@@ -70,19 +73,70 @@ export default function RightPanel() {
                                     maxRows={5}
                                 />
                             </div>
+                            <div className="flex items-center gap-2 py-1">
+                                <label className="text-xs font-medium text-(--text-secondary) shrink-0">
+                                    Ability Spacing
+                                </label>
+
+                                <input
+                                    type="range"
+                                    min="-1"
+                                    max="1"
+                                    step="0.05"
+                                    value={state.abilitySpacingAdjust ?? 0}
+                                    onChange={(e) =>
+                                        setField(
+                                            'abilitySpacingAdjust',
+                                            Number(e.target.value)
+                                        )
+                                    }
+                                    className="flex-1 min-w-0"
+                                />
+
+                                <input
+                                    type="number"
+                                    min="-1"
+                                    max="1"
+                                    step="0.05"
+                                    value={state.abilitySpacingAdjust ?? 0}
+                                    onChange={(e) =>
+                                        setField(
+                                            'abilitySpacingAdjust',
+                                            Number(e.target.value)
+                                        )
+                                    }
+                                    className="w-16 px-1.5 py-1 text-xs text-center rounded border border-(--border-color) bg-(--input-bg)"
+                                />
+
+                                <button
+                                    type="button"
+                                    onClick={() => setField('abilitySpacingAdjust', 0)}
+                                    className="px-1.5 py-1 text-[10px] rounded border border-(--border-color) text-(--text-secondary) hover:text-(--text-primary)"
+                                >
+                                    Reset
+                                </button>
+                            </div>
                             <div className="flex-1">
-                                <label className="block text-sm font-medium text-(--text-secondary) mb-1">{t.Abilities[lang]}</label>
-                                <TextArea
-                                    value={state.abilities}
-                                    onChange={(e) => setField('abilities', e)}
-                                    placeholder="Type Here..."
-                                    maxRows={15}
-                                    format={true}
+                                <label className="block text-sm font-medium text-(--text-secondary) mb-1">{t.Abilities}</label>
+                                <AbilityBlocksEditor
+                                    blocks={state.abilityBlocks}
+                                    onChange={setAbilityBlocks}
+                                    fullArt={state.isFullArt}
+                                    layoutStatus={state.abilityLayoutStatus}
                                 />
                             </div>
                         </div>
                     </div>
-                    <UploadGroup />
+                    {isRideDeck && (
+                        <RideDeckExplanationsControl
+                            checked={state.rideDeckHideExplanations ?? false}
+                            onChange={(value) => setField('rideDeckHideExplanations', value)}
+                        />
+                    )}
+                    {/* Keep the registry loader mounted; hide only its manager UI. */}
+                    <div hidden={isEnergy || isRideDeck}>
+                        <UploadGroup />
+                    </div>
                 </div>
             </aside>
         </>

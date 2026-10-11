@@ -1,7 +1,8 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
+import { getCurrentWordInfo, getSuggestionIndex, findSuggestions } from "../utils/EditorSuggestions";
 import { useIconConfig, useColorTag } from "../utils/store/IconConfig";
 import { JustifyIcon } from "./Icon";
 
@@ -59,112 +60,9 @@ const clampFloatingPosition = ({ left, top, width, height, padding = 8 }) => {
   };
 };
 
-const getCurrentWordInfo = (text, cursorPosition) => {
-  const textBeforeCursor = text.substring(0, cursorPosition);
-  const match = textBeforeCursor.match(/[a-zA-Z0-9_/@[\](){}-]+$/);
-
-  return !match
-    ? { word: "", start: cursorPosition }
-    : { word: match[0], start: cursorPosition - match[0].length };
-};
-
-const getSuggestionsList = (iconConfig) => {
-  if (!iconConfig) return [];
-  const list = [];
-
-  if (iconConfig.exact) {
-    Object.keys(iconConfig.exact).forEach((key) => {
-      list.push(key);
-    });
-  }
-
-  if (iconConfig.prefixes) {
-    Object.keys(iconConfig.prefixes).forEach((prefix) => {
-      const config = iconConfig.prefixes[prefix];
-
-      if (config.allowPlain === true) {
-        list.push(prefix);
-      }
-
-      if (
-        config.valueRange &&
-        typeof config.valueRange.min === "number" &&
-        typeof config.valueRange.max === "number"
-      ) {
-        const min = config.valueRange.min;
-        const max = config.valueRange.max;
-
-        for (let v = min; v <= max; v++) {
-          list.push(`${prefix}(${v})`);
-        }
-      }
-    });
-  }
-
-  return Array.from(new Set(list));
-};
-
-const filterSuggestions = (word, allSuggestions, colorTagConfig) => {
-  if (!word || word.length < 1) return [];
-
-  const w = word.toLowerCase();
-  const list = [];
-
-  allSuggestions.forEach((s) => {
-    const sLow = s.toLowerCase();
-    const hasVariants = allSuggestions.some(
-      (x) => x !== s && x.toLowerCase().startsWith(`${sLow}(`)
-    );
-
-    const allowVal = colorTagConfig?.allow?.[s];
-    const allowColorVariants = allowVal === true || (Array.isArray(allowVal) && allowVal.length > 0);
-    const escaped = sLow.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-    const completedColorVariantRegex = new RegExp(`^${escaped}@\\[[^\\]]+\\](?:.+)?$`);
-    const partialColorVariantRegex = new RegExp(`^${escaped}@\\[[^\\]]*$`);
-
-    const isCompletedColorVariant = completedColorVariantRegex.test(w);
-    const isTypingColorVariant = partialColorVariantRegex.test(w);
-
-    let match = false;
-
-    if ((s === word && !hasVariants && !allowColorVariants) || isCompletedColorVariant) {
-      match = false;
-    }
-    else if (allowColorVariants && isTypingColorVariant) {
-      match = true;
-    }
-    else if (sLow.startsWith(w)) {
-      match = true;
-    }
-    else if (s.startsWith("[") && s.endsWith("]")) {
-      const inner = s.slice(1, -1);
-      const innerLow = inner.toLowerCase();
-
-      if (inner === word && !allowColorVariants) {
-        match = false;
-      } else if (innerLow.startsWith(w)) {
-        match = true;
-      }
-    }
-
-    if (match) {
-      list.push(s);
-
-      if (allowColorVariants && colorTagConfig?.preset) {
-        const allColors = Object.keys(colorTagConfig.preset);
-        const colors = Array.isArray(allowVal) ? allColors.filter((c) => allowVal.includes(c)) : allColors;
-        colors.forEach((color) => {
-          list.push(`${s}@[${color}]`);
-        });
-      }
-    }
-  });
-
-  return Array.from(new Set(list)).slice(0, 11);
-};
-
 export default function TextArea({
+  id,
+  ariaLabel,
   value,
   onChange,
   placeholder = "Type Here...",
@@ -176,7 +74,10 @@ export default function TextArea({
   const overlayRef = useRef(null);
   const itemRefs = useRef([]);
 
-  const [isFocused, setIsFocused] = useState(false);
+  const composingRef = useRef(false);
+  const selectionFrameRef = useRef(null);
+  const blurTimeoutRef = useRef(null);
+  const mouseTimeoutRef = useRef(null);
   const [suggestions, setSuggestions] = useState([]);
   const [sugPos, setSugPos] = useState({ top: 0, left: 0 });
   const [sugStartIdx, setSugStartIdx] = useState(0);
@@ -187,6 +88,13 @@ export default function TextArea({
 
   const iconConfig = useIconConfig();
   const colorTagConfig = useColorTag();
+  const suggestionIndex = useMemo(() => getSuggestionIndex(iconConfig, colorTagConfig), [iconConfig, colorTagConfig]);
+
+  useEffect(() => () => {
+    cancelAnimationFrame(selectionFrameRef.current);
+    clearTimeout(blurTimeoutRef.current);
+    clearTimeout(mouseTimeoutRef.current);
+  }, []);
 
   const resize = () => {
     const el = ref.current;
@@ -250,10 +158,9 @@ export default function TextArea({
 
     onChange(val);
 
-    if (format && iconConfig) {
+    if (format && iconConfig && !composingRef.current && !e.nativeEvent?.isComposing) {
       const { word, start } = getCurrentWordInfo(val, cursor);
-      const allSugs = getSuggestionsList(iconConfig);
-      const filtered = filterSuggestions(word, allSugs, colorTagConfig);
+      const filtered = findSuggestions(word, suggestionIndex);
 
       if (filtered.length > 0) {
         const offset = getCaretOffsetAt(e.target, start);
@@ -268,6 +175,8 @@ export default function TextArea({
   };
 
   const handleKeyDown = (e) => {
+    // Enter belongs to the Korean IME while composition is in progress.
+    if (composingRef.current || e.nativeEvent?.isComposing || e.keyCode === 229) return;
     const isMeta = e.ctrlKey || e.metaKey;
     const code = e.code;
 
@@ -303,7 +212,9 @@ export default function TextArea({
   const handleSelect = (e) => {
     const el = e.target;
 
-    requestAnimationFrame(() => {
+    cancelAnimationFrame(selectionFrameRef.current);
+    selectionFrameRef.current = requestAnimationFrame(() => {
+      if (ref.current !== el || !el.isConnected || document.activeElement !== el || composingRef.current) return;
       const start = el.selectionStart;
       const end = el.selectionEnd;
 
@@ -325,8 +236,7 @@ export default function TextArea({
 
       if (format && iconConfig) {
         const { word, start: wordStart } = getCurrentWordInfo(el.value, start);
-        const allSugs = getSuggestionsList(iconConfig);
-        const filtered = filterSuggestions(word, allSugs, colorTagConfig);
+        const filtered = findSuggestions(word, suggestionIndex);
 
         if (filtered.length > 0) {
           const offset = getCaretOffsetAt(el, wordStart);
@@ -341,7 +251,8 @@ export default function TextArea({
   };
 
   const handleMouseDown = () => {
-    setTimeout(() => {
+    clearTimeout(mouseTimeoutRef.current);
+    mouseTimeoutRef.current = setTimeout(() => {
       const el = ref.current;
       if (el && el.selectionStart === el.selectionEnd) {
         setShowToolbar(false);
@@ -415,12 +326,14 @@ export default function TextArea({
   };
 
   const baseTextareaClass =
-    "w-full p-2 disabled:pointer-events-none text-sm border rounded-md outline-none transition-all resize-none overflow-hidden";
+    "w-full px-2 pt-3 pb-2 disabled:pointer-events-none text-sm border rounded-md outline-none transition-all resize-none overflow-hidden";
 
   if (!format) {
     return (
       <div className={disabled ? "cursor-not-allowed" : ""}>
         <textarea
+          id={id}
+          aria-label={ariaLabel}
           ref={ref}
           rows={1}
           value={value}
@@ -549,6 +462,8 @@ export default function TextArea({
         )}
 
       <textarea
+          id={id}
+          aria-label={ariaLabel}
         ref={ref}
         rows={1}
         value={value}
@@ -557,13 +472,35 @@ export default function TextArea({
         onKeyDown={handleKeyDown}
         onSelect={handleSelect}
         onMouseDown={handleMouseDown}
-        onFocus={() => setIsFocused(true)}
+        onFocus={() => clearTimeout(blurTimeoutRef.current)}
         onBlur={() => {
-          setIsFocused(false);
-          setTimeout(() => {
+          cancelAnimationFrame(selectionFrameRef.current);
+          clearTimeout(blurTimeoutRef.current);
+          blurTimeoutRef.current = setTimeout(() => {
+            if (document.activeElement === ref.current) return;
             setSuggestions([]);
             setShowToolbar(false);
+            setSelectionRange(null);
           }, 200);
+        }}
+        onCompositionStart={() => {
+          composingRef.current = true;
+          setSuggestions([]);
+          setShowToolbar(false);
+        }}
+        onCompositionEnd={() => {
+          composingRef.current = false;
+          const el = ref.current;
+          if (!el) return;
+          const { word, start } = getCurrentWordInfo(el.value, el.selectionStart);
+          const next = findSuggestions(word, suggestionIndex);
+          setSuggestions(next);
+          if (next.length) {
+            const offset = getCaretOffsetAt(el, start);
+            setSugStartIdx(start);
+            setSugPos(offset);
+            setActiveIndex(0);
+          }
         }}
         onScroll={handleScroll}
         disabled={disabled}

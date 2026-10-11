@@ -2,9 +2,11 @@
 
 import { Group, Image as KonvaImage } from "react-konva";
 import useImage from "use-image";
-import { useEffect, useLayoutEffect, useRef, useMemo, useState } from "react";
-import Konva from "konva";
+import { useEffect, useRef, useMemo } from "react";
 import { HYBRID_ICON_CONFIG } from "../../../utils/store/IconConfig";
+import { getKoreanCardIconPath } from "../../../utils/PathHelper";
+import { getAbilityIconAppearance } from "../../../utils/AbilityTextStyle";
+import { useAbilityIconStroke } from "./useAbilityIconStroke";
 
 export default function PlainIcon({
   src,
@@ -16,13 +18,14 @@ export default function PlainIcon({
 }) {
   const imgRef = useRef();
   const strokeRef = useRef();
-  const [hasError, setHasError] = useState(false);
+  const { dark: iconDark } = getAbilityIconAppearance({ dark, spText: fullArt });
 
+  const localizedSrc = getKoreanCardIconPath(src);
   const finalSrc = useMemo(() => {
-    return dark && HYBRID_ICON_CONFIG?.darkModePaths?.[src] 
-      ? HYBRID_ICON_CONFIG.darkModePaths[src] 
-      : src;
-  }, [src, dark]);
+    return iconDark && HYBRID_ICON_CONFIG?.darkModePaths?.[localizedSrc]
+      ? HYBRID_ICON_CONFIG.darkModePaths[localizedSrc]
+      : localizedSrc;
+  }, [localizedSrc, iconDark]);
 
   const strokeSrc = useMemo(() => {
     if (!finalSrc) return null;
@@ -43,26 +46,7 @@ export default function PlainIcon({
     }
   }, [img, targetHeight, onWidthReady]);
 
-  useLayoutEffect(() => {
-    const node = strokeRef.current;
-    if (!node || !strokeImg || !fullArt) return;
-
-    try {
-      node.clearCache();
-      node.filters([Konva.Filters.RGBA]);
-      const c = dark ? { r: 0, g: 0, b: 0 } : { r: 255, g: 255, b: 255 };
-      node.red(c.r);
-      node.green(c.g);
-      node.blue(c.b);
-      node.alpha(1);
-      node.cache();
-
-      const layer = node.getLayer();
-      if (layer) layer.batchDraw();
-    } catch (e) {
-      // silently handle filter errors
-    }
-  }, [strokeImg, dark, fullArt]);
+  useAbilityIconStroke(strokeRef, strokeImg, fullArt, Boolean(img));
 
   if (!img) return null;
 

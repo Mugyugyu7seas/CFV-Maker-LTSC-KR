@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { useLang } from "../utils/LanguageProvider";
+
 import { TextPreset } from "../utils/store/Text";
 import { InfoIcon, CheckIcon } from "./Icon";
 
@@ -12,7 +12,7 @@ export default function CardTypeModal({
   onSelect,
   options = []
 }) {
-  const { lang } = useLang();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
@@ -48,17 +48,17 @@ export default function CardTypeModal({
     if (categories.units.includes(optId)) {
       return {
         category: "units",
-        catLabel: t.units[lang]
+        catLabel: t.units
       };
     } else if (categories.orders.includes(optId)) {
       return {
         category: "orders",
-        catLabel: t.orders[lang]
+        catLabel: t.orders
       };
     } else {
       return {
         category: "other",
-        catLabel: t.other[lang]
+        catLabel: t.other
       };
     }
   };
@@ -87,7 +87,7 @@ export default function CardTypeModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-(--panel-border) bg-(--toolbar-bg) px-6 py-4">
           <h2 className="text-base font-bold text-(--text-primary)">
-            {t.title[lang]}
+            {t.title}
           </h2>
         </div>
 
@@ -98,7 +98,7 @@ export default function CardTypeModal({
             <input
               ref={searchRef}
               type="text"
-              placeholder={t.search[lang]}
+              placeholder={t.search}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full select-text pl-3 pr-10 py-2 rounded-md border border-(--border-color) bg-(--bg-secondary) text-(--text-primary) placeholder:text-(--text-secondary)/60 focus:outline-none focus:ring-1 focus:ring-(--accent) focus:border-(--accent) transition-all text-sm"
@@ -116,7 +116,7 @@ export default function CardTypeModal({
                   : "text-(--text-secondary) hover:text-(--text-primary)"
                   }`}
               >
-                {tab === "all" ? t.all[lang] : t[tab][lang]}
+                {tab === "all" ? t.all : t[tab]}
               </button>
             ))}
           </div>
@@ -163,7 +163,7 @@ export default function CardTypeModal({
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-sm text-(--text-secondary)">
-                {t.noResults[lang]}
+                {t.noResults}
               </p>
             </div>
           )}
@@ -175,7 +175,7 @@ export default function CardTypeModal({
             onClick={onClose}
             className="px-4 py-1.5 text-sm font-medium border border-(--border-color) bg-(--bg-primary) text-(--text-primary) hover:bg-(--button-hover) rounded-md transition-all cursor-pointer"
           >
-            {t.close[lang]}
+            {t.close}
           </button>
         </div>
       </div>

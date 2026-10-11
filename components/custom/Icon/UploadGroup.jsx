@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 
-import { useLang } from "../../../utils/LanguageProvider";
+
 import { TextPreset } from "../../../utils/store/Text";
 
 import { getAllIcons, saveIcon, deleteIconFromDB } from "./DB";
@@ -14,7 +14,7 @@ import UploadItem from "./UploadItem";
 import { PlusIcon } from "../../Icon";
 
 export default function UploadGroup(m) {
-    const { lang } = useLang();
+
     const [items, setItems] = useState([]);
     const [isDragging, setIsDragging] = useState(false);
 
@@ -205,7 +205,7 @@ export default function UploadGroup(m) {
     return (
         <div>
             <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">
-                {t.title?.[lang] || "Icon Manager"}
+                {t.title || "Icon Manager"}
             </div>
             <label
                 onDragOver={handleDragOver}
@@ -245,14 +245,14 @@ export default function UploadGroup(m) {
                 />
 
                 <span
-                    className={`${lang == "en" ? "text-[11px]" : "text-[13.5px]"} font-bold uppercase transition-colors ${isDragging
+                    className={`${"text-[11px]"} font-bold uppercase transition-colors ${isDragging
                         ? "text-(--accent)"
                         : "text-(--text-secondary) group-hover:text-(--accent)"
                         }`}
                 >
                     {isDragging
-                        ? t.Drop[lang]
-                        : t.ClickDrop[lang]}
+                        ? t.Drop
+                        : t.ClickDrop}
                 </span>
             </label>
             <div className="space-y-2 custom-scrollbar">
@@ -262,13 +262,13 @@ export default function UploadGroup(m) {
                         item={item}
                         onUpdate={handleUpdate}
                         onDelete={() => handleDelete(item)}
-                        Save={t.Save[lang]}
-                        Cancle={t.Cancle[lang]}
-                        Delete={t.Delete[lang]}
-                        Copy={t.Copy[lang]}
-                        Copied={t.Copied[lang]}
-                        Unsave={t.Unsave[lang]}
-                        Invalid={t.Invalid[lang]}
+                        Save={t.Save}
+                        Cancle={t.Cancle}
+                        Delete={t.Delete}
+                        Copy={t.Copy}
+                        Copied={t.Copied}
+                        Unsave={t.Unsave}
+                        Invalid={t.Invalid}
                     />
                 ))}
             </div>

@@ -1,11 +1,15 @@
+// CFV hide-explanations and SEC UI v1
 "use client"
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-import { useLang } from '../../../utils/LanguageProvider';
+
 import { useCardState } from '../../../utils/store/State';
 
 import TextInput from '../../../components/TextInput';
+import GradeColorEditor from '../../../components/GradeColorEditor';
+import { SecToggle, SecProperties } from '../../../components/SecModeControls';
+import { isSecMode } from '../../../utils/SecMode';
 import Selector from '../../../components/Selector';
 import ToggleInput from '../../../components/ToggleInput';
 import ColorPickerInput from '../../../components/ColorPickerInput';
@@ -55,8 +59,13 @@ const getCardTypeFlags = (typeVal) => {
 };
 
 export default function LeftPanel() {
-    const { lang } = useLang();
+
     const { state, setField, setMultiple } = useCardState();
+    const secActive = isSecMode(state);
+
+    const changeGradeNumberStyle = useCallback((gradeNumberStyle) => {
+        setMultiple({ gradeNumberStyle, isSaved: false });
+    }, [setMultiple]);
 
     const [isOpen, setIsOpen] = useState(false);
     const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
@@ -115,9 +124,9 @@ export default function LeftPanel() {
 
     const addPassive = (isUnit && !flags.isToken && !isGUnit) ? 1 : isOrder ? 2 : 0;
 
-    const translatedNations = nationOption.map(opt => ({ ...opt, label: tOpt[opt.id]?.[lang] || opt.label }));
+    const translatedNations = nationOption.map(opt => ({ ...opt, label: tOpt[opt.id] || opt.label }));
     const translatedTypes = typeOption
-        .map(opt => ({ ...opt, label: tOpt[opt.id]?.[lang] || opt.label }))
+        .map(opt => ({ ...opt, label: tOpt[opt.id] || opt.label }))
         .filter(opt => {
             if (state.customNationEnabled) {
                 return opt.id !== 'b5' && opt.id !== 'b6';
@@ -125,12 +134,12 @@ export default function LeftPanel() {
             return true;
         });
 
-    const translatedPassives = passiveOption.map(opt => ({ ...opt, label: tOpt[opt.id]?.[lang] || opt.label }));
-    const translatedAddPassives = (addPassiveOption[addPassive] || []).map(opt => ({ ...opt, label: tOpt[opt.id]?.[lang] || opt.label }));
-    const translatedTriggers = triggerOption.map(opt => ({ ...opt, label: tOpt[opt.id]?.[lang] || opt.label }));
+    const translatedPassives = passiveOption.map(opt => ({ ...opt, label: tOpt[opt.id] || opt.label }));
+    const translatedAddPassives = (addPassiveOption[addPassive] || []).map(opt => ({ ...opt, label: tOpt[opt.id] || opt.label }));
+    const translatedTriggers = triggerOption.map(opt => ({ ...opt, label: tOpt[opt.id] || opt.label }));
 
     const currentNationClans = clanOption[state.selectedNation] || [];
-    const translatedClans = currentNationClans.map(opt => ({ ...opt, label: tOpt[opt.id]?.[lang] || opt.label }));
+    const translatedClans = currentNationClans.map(opt => ({ ...opt, label: tOpt[opt.id] || opt.label }));
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -265,12 +274,12 @@ export default function LeftPanel() {
                         <div className='pb-6'>
                             <div className="flex flex-col gap-2">
                                 <div className="flex flex-col gap-3">
-                                    <TextInput disabled={isEnergy || isRideDeck} label={t.CardName[lang]} type="text" maxLength={48} value={isEnergy ? TextPreset.Extra.Energy[lang] : isRideDeck ? TextPreset.Extra.Generator[lang] : state.cardName} onChange={(e) => setField('cardName', e)} />
+                                    <TextInput disabled={isEnergy || isRideDeck} label={t.CardName} type="text" maxLength={48} value={isEnergy ? TextPreset.Extra.Energy : isRideDeck ? TextPreset.Extra.Generator : state.cardName} onChange={(e) => setField('cardName', e)} />
 
                                     {/* Race */}
                                     <ToggleInput
                                         visible={isUnit}
-                                        label={t.Race[lang]}
+                                        label={t.Race}
                                         value={state.raceText}
                                         onChange={(e) => setField('raceText', e.target.value)}
                                         disabled={isClanNone && !state.customNationEnabled}
@@ -280,13 +289,13 @@ export default function LeftPanel() {
                                         toggleValue={state.raceCheck}
                                         toggleOnChange={(v) => setField('raceCheck', v)}
                                         toggleText="RC"
-                                        toggleTooltip={state.raceCheck ? t.HideRace[lang] : t.ShowRace[lang]}
+                                        toggleTooltip={state.raceCheck ? t.HideRace : t.ShowRace}
                                     />
 
                                     {/* Nation */}
                                     <Selector
                                         visible={!isMarker && !isEnergy && (!state.customNationEnabled || isCrest)}
-                                        label={t.Nation[lang]}
+                                        label={t.Nation}
                                         options={translatedNations}
                                         value={state.selectedNation}
                                         onChange={(e) => setField('selectedNation', e)}
@@ -294,18 +303,18 @@ export default function LeftPanel() {
                                         checkValue={state.showGlobe}
                                         checkOnChange={(v) => setField('showGlobe', v)}
                                         checkText="CG"
-                                        checkTooltip={state.showGlobe ? t.HideGlobe?.[lang] : t.ShowGlobe?.[lang]}
+                                        checkTooltip={state.showGlobe ? t.HideGlobe : t.ShowGlobe}
                                         checkVisible2={isUnit && !isEncounter}
                                         checkValue2={state.showClan}
                                         checkOnChange2={(v) => setField('showClan', v)}
                                         checkText2="CN"
-                                        checkTooltip2={state.showClan ? t.HideClan?.[lang] : t.ShowClan?.[lang]}
+                                        checkTooltip2={state.showClan ? t.HideClan : t.ShowClan}
                                     />
 
                                     {/* Card Type */}
                                     <div className="flex-1">
                                         <label className="block text-sm font-medium text-(--text-secondary) mb-1">
-                                            {t.CardType[lang]}
+                                            {t.CardType}
                                         </label>
                                         <div className="flex items-center gap-2">
                                             <button
@@ -318,7 +327,7 @@ export default function LeftPanel() {
                                                 </span>
                                                 <InfoIcon className="w-4 h-4 shrink-0 text-(--text-secondary) group-hover:text-(--text-primary) transition-colors" />
                                             </button>
-                                            <Tooltip text={state.isFullArt ? t.NormalCardMode[lang] : t.SPCardMode[lang]}>
+                                            <Tooltip text={state.isFullArt ? t.NormalCardMode : t.SPCardMode}>
                                                 <label
                                                     className={`flex items-center justify-center gap-2 min-w-17 h-10 px-3 rounded-md border transition-all select-none cursor-pointer
                                                     ${state.isFullArt
@@ -349,13 +358,15 @@ export default function LeftPanel() {
                                                     </span>
                                                 </label>
                                             </Tooltip>
+                                            <SecToggle isFullArt={state.isFullArt} isSec={state.isSec ?? false}
+                                                onChange={(isSec) => setMultiple({ isSec, isSaved: false })} />
                                         </div>
                                     </div>
 
                                     {/* Order Subtype */}
                                     <ToggleInput
                                         visible={!(isUnit || isMarker || isEnergy || isCrest)}
-                                        label={t.OrderSubtype[lang]}
+                                        label={t.OrderSubtype}
                                         value={state.subOrderType}
                                         onChange={(e) => setField('subOrderType', e.target.value)}
                                         disabled={!state.isSubType}
@@ -364,26 +375,56 @@ export default function LeftPanel() {
                                         toggleValue={state.isSubType}
                                         toggleOnChange={(v) => setField('isSubType', v)}
                                         toggleText="ST"
-                                        toggleTooltip={state.isSubType ? t.HideSubtype[lang] : t.ShowSubtype[lang]}
+                                        toggleTooltip={state.isSubType ? t.HideSubtype : t.ShowSubtype}
                                     />
 
-                                    <Selector visible={isEncounter || state.showClan} label={t.Clan[lang]} options={translatedClans} value={state.clan} onChange={(e) => setField('clan', e)} />
-                                    <Selector visible={isTriggerUnit || isTriggerOrder} label={t.Trigger[lang]} options={translatedTriggers} value={state.selectedTrigger} onChange={(e) => setField('selectedTrigger', e)} />
-                                    <TextInput visible={!isMarker && !isEnergy && !isCrest && !isGUnit} label={t.Grade[lang]} type="number" value={state.grade} step={1} min={0} max={11} onChange={handleGradeChange} />
+                                    <Selector visible={isEncounter || state.showClan} label={t.Clan} options={translatedClans} value={state.clan} onChange={(e) => setField('clan', e)} />
+                                    <Selector visible={isTriggerUnit || isTriggerOrder} label={t.Trigger} options={translatedTriggers} value={state.selectedTrigger} onChange={(e) => setField('selectedTrigger', e)} />
+                                    {/* Grade and its nation-linked color share one compact row. */}
+                                    <div
+                                        className={!isMarker && !isEnergy && !isCrest ? "flex items-end gap-2" : "hidden"}
+                                        data-testid="grade-controls"
+                                    >
+                                        <div className="flex-1 min-w-0">
+                                            <TextInput
+                                                label={t.Grade}
+                                                type="number"
+                                                value={state.grade}
+                                                step={1}
+                                                min={0}
+                                                max={11}
+                                                disabled={isGUnit}
+                                                onChange={handleGradeChange}
+                                            />
+                                        </div>
+                                        <GradeColorEditor
+                                            visible={!isMarker && !isEnergy && !isCrest}
+                                            value={state.gradeNumberStyle}
+                                            onChange={changeGradeNumberStyle}
+                                            selectedNation={state.selectedNation}
+                                            customNationEnabled={state.customNationEnabled}
+                                        />
+                                    </div>
+                                    {!isMarker && !isEnergy && !isCrest &&
+                                        ["custom", "preset"].includes(state.gradeNumberStyle?.mode) && (
+                                        <p className="-mt-1 text-[10px] leading-snug text-(--text-secondary)">
+                                            Saved fixed color. Switch Color off and on to follow Nation.
+                                        </p>
+                                    )}
 
                                     {/* Passive Skills */}
-                                    <Selector visible={!isGUnit && isUnit} label={t.PassiveSkills[lang]} options={translatedPassives} value={state.selectedPassive} onChange={(e) => setField('selectedPassive', e)} />
+                                    <Selector visible={!isGUnit && isUnit} label={t.PassiveSkills} options={translatedPassives} value={state.selectedPassive} onChange={(e) => setField('selectedPassive', e)} />
 
                                     {/* Additional Passive */}
-                                    <Selector visible={(isUnit || isOrder) && !isGUnit} label={t.AddPassive[lang]} options={translatedAddPassives} value={state.addition} onChange={(e) => setField('addition', e)} />
+                                    <Selector visible={(isUnit || isOrder) && !isGUnit} label={t.AddPassive} options={translatedAddPassives} value={state.addition} onChange={(e) => setField('addition', e)} />
 
-                                    <TextInput label={t.Power[lang]} visible={isUnit} type="number" value={state.power} min={0} max={99999} onChange={(e) => setField('power', e)} />
+                                    <TextInput label={t.Power} visible={isUnit} type="number" value={state.power} min={0} max={99999} onChange={(e) => setField('power', e)} />
 
                                     {/* Shield */}
                                     <ToggleInput
                                         inputRef={shieldRef}
                                         visible={!(isGUnit || !isUnit)}
-                                        label={t.Shield[lang]}
+                                        label={t.Shield}
                                         type="number"
                                         value={state.shield}
                                         min={0}
@@ -408,10 +449,10 @@ export default function LeftPanel() {
                                         toggleValue={state.shieldCheck}
                                         toggleOnChange={(v) => setField('shieldCheck', v)}
                                         toggleText="SH"
-                                        toggleTooltip={state.shieldCheck ? t.HideShield[lang] : t.ShowShield[lang]}
+                                        toggleTooltip={state.shieldCheck ? t.HideShield : t.ShowShield}
                                     />
 
-                                    <TextInput label={t.Illustrator[lang]} type="text" value={state.illust} onChange={(e) => setField('illust', e)} />
+                                    <TextInput label={t.Illustrator} type="text" value={state.illust} onChange={(e) => setField('illust', e)} />
                                 </div>
                             </div>
                         </div>
@@ -419,12 +460,13 @@ export default function LeftPanel() {
 
                     {activeTab === 'advance' && (
                         <div className='pb-6 relative'>
-                            <div className={`${!(isUnit || isOrder) ? "hidden" : "flex"} flex-col`}>
+                            {secActive && <SecProperties />}
+                            <div className={`${(!(isUnit || isOrder) || secActive) ? "hidden" : "flex"} flex-col`}>
                                 <h2 className="hidden md:block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Custom Properties</h2>
                                 {/* Base Color */}
                                 <ColorPickerInput
                                     visible={isNormalUnit || isTriggerUnit || isToken}
-                                    label={t.BaseColor[lang]}
+                                    label={t.BaseColor}
                                     color={state.baseColorTint?.color || '#ff0000'}
                                     disabled={!state.baseColorTint?.enabled}
                                     onChange={(newColor) => setField('baseColorTint', { enabled: state.baseColorTint?.enabled || false, color: newColor })}
@@ -432,13 +474,13 @@ export default function LeftPanel() {
                                     toggleValue={state.baseColorTint?.enabled || false}
                                     toggleOnChange={(v) => setField('baseColorTint', { enabled: v, color: state.baseColorTint?.color || '#ffffff' })}
                                     toggleText="BC"
-                                    toggleTooltip={state.baseColorTint?.enabled ? t.BaseColorOff?.[lang] : t.BaseColorOn?.[lang]}
+                                    toggleTooltip={state.baseColorTint?.enabled ? t.BaseColorOff : t.BaseColorOn}
                                 />
 
                                 {/* Custom Nation */}
                                 <ToggleInput
                                     containerClass="mb-5.75"
-                                    label={t.CustomNation[lang]}
+                                    label={t.CustomNation}
                                     value={state.customNationName || ''}
                                     onChange={(e) => setField('customNationName', e.target.value)}
                                     disabled={!state.customNationEnabled}
@@ -447,28 +489,28 @@ export default function LeftPanel() {
                                     toggleValue={state.customNationEnabled || false}
                                     toggleOnChange={(v) => setField('customNationEnabled', v)}
                                     toggleText="CN"
-                                    toggleTooltip={state.customNationEnabled ? t.CustomNationOff[lang] : t.CustomNationOn[lang]}
+                                    toggleTooltip={state.customNationEnabled ? t.CustomNationOff : t.CustomNationOn}
                                 />
 
                                 {state.customNationEnabled && (
                                     <>
                                         {/* Solid Edge */}
                                         <ColorPickerInput
-                                            label={t.SolidEdge[lang]}
+                                            label={t.SolidEdge}
                                             color={state.solidColor || '#ffffff'}
                                             onChange={(newColor) => setField('solidColor', newColor)}
                                         />
 
                                         {/* Card Name Gradient */}
                                         <GradientInput
-                                            label={t.CardNameGradient[lang]}
+                                            label={t.CardNameGradient}
                                             colors={state.cardNameGradient || []}
                                             onChange={(newColors) => setField('cardNameGradient', newColors)}
                                         />
 
                                         {/* Nation Gradient */}
                                         <GradientInput
-                                            label={t.NationGradient[lang]}
+                                            label={t.NationGradient}
                                             colors={state.nationGradient || []}
                                             onChange={(newColors) => setField('nationGradient', newColors)}
                                         />

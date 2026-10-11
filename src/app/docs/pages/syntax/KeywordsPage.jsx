@@ -1,4 +1,4 @@
-import { useLang } from "../../../../../utils/LanguageProvider";
+
 import { TextPreset } from "../../../../../utils/store/Text";
 
 import SyntaxGrid from "../../components/SyntaxLoader";
@@ -7,7 +7,7 @@ import { KEYWORDS } from "../../components/SyntaxLoader";
 import { KeywordIcon } from "../../../../../components/Icon";
 
 export default function SyntaxPage() {
-  const { lang } = useLang();
+
   const t = TextPreset.KeywordPage;
 
   const keywordsItems = [
@@ -24,7 +24,7 @@ export default function SyntaxPage() {
       <div className="overflow-y-auto h-full custom-scrollbar p-8 pb-16">
         <h4 className="flex items-center gap-2 text-xl font-semibold mb-3 pb-1.5 border-b border-(--border-color)">
           <KeywordIcon size={24} />
-          {t.Keywords[lang]}
+          {t.Keywords}
         </h4>
         <SyntaxGrid items={keywordsItems} columns={3} />
       </div>

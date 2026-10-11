@@ -1,4 +1,4 @@
-import { useLang } from '../../../../utils/LanguageProvider';
+
 import { TextPreset } from '../../../../utils/store/Text';
 
 import { InfoIcon, PlusIcon } from "../../../../components/Icon";
@@ -6,7 +6,7 @@ import { InfoIcon, PlusIcon } from "../../../../components/Icon";
 const version = process.env.TEMPLATE_VERSION;
 
 export default function IntroPage() {
-  const { lang } = useLang();
+
   const t = TextPreset.IntroPage;
 
   return (
@@ -23,53 +23,53 @@ export default function IntroPage() {
       <div className="mb-8">
         <div className="flex items-center gap-2 text-lg font-semibold mb-4">
           <InfoIcon size={24} />
-          {t.whatIs[lang]}
+          {t.whatIs}
         </div>
         <p className="text-base text-(--text-secondary) leading-relaxed">
-          {t.desc1[lang]}
-          <strong>{t.descFanmade[lang]}</strong>
-          {t.desc2[lang]}
-          <strong>{t.descProvider[lang]}</strong>
-          {t.desc3[lang]}
+          {t.desc1}
+          <strong>{t.descFanmade}</strong>
+          {t.desc2}
+          <strong>{t.descProvider}</strong>
+          {t.desc3}
         </p>
       </div>
 
       <div className="flex items-center gap-2 text-lg font-semibold mb-4">
         <PlusIcon size={24} />
-        {t.keyFeatures[lang]}
+        {t.keyFeatures}
       </div>
       <div className={`bg-(--bg-secondary) rounded-xl p-5 text-base text-(--text-secondary) leading-relaxed border border-(--border-color)`}>
         <ul className="space-y-4">
           <li className="flex items-start gap-3">
             <span className="text-(--accent) shrink-0">✦</span>
-            <p>{t.feat1[lang]}</p>
+            <p>{t.feat1}</p>
           </li>
           <li className="flex items-start gap-3">
             <span className="text-(--accent) shrink-0">✦</span>
-            <p>{t.feat2[lang]}</p>
+            <p>{t.feat2}</p>
           </li>
           <li className="flex items-start gap-3">
             <span className="text-(--accent) shrink-0">✦</span>
-            <p>{t.feat3[lang]}</p>
+            <p>{t.feat3}</p>
           </li>
           <li className="flex items-start gap-3">
             <span className="text-(--accent) shrink-0">✦</span>
             <p>
-              {t.feat4[lang]}
+              {t.feat4}
               <code className="bg-(--bg-primary) px-1.5 py-0.5 rounded text-xs text-(--text-primary)">
                 .zip
               </code>
-              {t.feat4_2[lang]}
+              {t.feat4_2}
             </p>
           </li>
           <li className="flex items-start gap-3">
             <span className="text-(--accent) shrink-0">✦</span>
             <p>
-              {t.feat5[lang]}
+              {t.feat5}
               <code className="bg-(--bg-primary) px-1.5 py-0.5 rounded text-xs text-(--text-primary)">
                 .zip
               </code>
-              {t.feat5_2[lang]}
+              {t.feat5_2}
             </p>
           </li>
         </ul>

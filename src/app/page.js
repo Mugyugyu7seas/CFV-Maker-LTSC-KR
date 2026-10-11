@@ -1,10 +1,13 @@
+// CFV ride-deck explanations control v1
+// CFV hide-explanations and SEC UI v1
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
+import { ABILITY_EDITOR_TEXT as abilityText } from '../../utils/store/AbilityEditorText';
 import { CardProvider, useCardState } from '../../utils/store/State';
 import { importCardFromZip, exportCardToZip } from '../../utils/CardIO';
 import { TextPreset } from '../../utils/store/Text';
-import { useLang } from '../../utils/LanguageProvider';
+
 
 
 
@@ -24,7 +27,7 @@ import {
 import { WarningIcon } from '../../components/Icon';
 
 function PageContent() {
-    const { lang, setLang } = useLang();
+
     const { state, setField, setMultiple, setImageConfig } = useCardState();
 
     const t = TextPreset.Warning;
@@ -97,9 +100,9 @@ function PageContent() {
         const timer = setTimeout(() => {
             if (
                 firstLoadRef.current &&
-                state.cardName === TextPreset.LeftPanel.CardName[lang]
+                state.cardName === TextPreset.LeftPanel.CardName
             ) {
-                document.title = lang === 'th' ? "CFV Maker - ไม่มีชื่อ" : "CFV Maker - Untitled";
+                document.title = "CFV Maker - Untitled";
                 firstLoadRef.current = false;
                 return;
             }
@@ -107,14 +110,14 @@ function PageContent() {
             firstLoadRef.current = false;
 
             document.title = isEnergy
-                ? `CFV Maker - ${TextPreset.Extra.Energy[lang]}`
+                ? `CFV Maker - ${TextPreset.Extra.Energy}`
                 : isRideDeck
-                    ? `CFV Maker - ${TextPreset.Extra.Generator[lang]}`
+                    ? `CFV Maker - ${TextPreset.Extra.Generator}`
                     : `CFV Maker - ${state.cardName}`;
         }, 100);
 
         return () => clearTimeout(timer);
-    }, [isEnergy, isRideDeck, state.cardName, lang]);
+    }, [isEnergy, isRideDeck, state.cardName]);
 
     useEffect(() => {
         const currentImageSrc = state.imageSrc;
@@ -141,14 +144,21 @@ function PageContent() {
 
             setMultiple({
                 isFullArt: data.isFullArt || false,
+                isSec: data.isSec ?? false,
+                rideDeckHideExplanations: data.rideDeckHideExplanations ?? false,
                 showGlobe: data.showGlobe || false,
                 showClan: data.showClan ?? false,
                 baseColorTint: data.baseColorTint || { enabled: false, color: '#ff0000' },
                 cardName: data.cardName || "N/A",
                 illust: data.illust || "",
                 flavor: data.flavor || "",
+                abilitySpacingAdjust:
+                    data.abilitySpacingAdjust ?? 0,
                 abilities: data.abilities || "",
+                abilityBlocks: data.abilityBlocks,
+                abilityBlocksVersion: 1,
                 grade: data.grade ?? 0,
+                gradeNumberStyle: data.gradeNumberStyle,
                 power: data.power ?? 0,
                 raceText: data.raceText || "N/A",
                 raceCheck: data.raceCheck ?? false,
@@ -175,7 +185,7 @@ function PageContent() {
                 tempImageSrc: null,
             });
 
-            setLang(data.lang || "en");
+            // Saved UI/card language is ignored by the Korean-only renderer.
             setField('isSaved', true);
 
             if (data.imageConfig) {
@@ -195,6 +205,7 @@ function PageContent() {
             const fileInput = document.getElementById('import-file-input');
             if (fileInput) fileInput.value = '';
         } else {
+            window.alert(result.error || abilityText.importFailed);
             cancelImport();
         }
     };
@@ -213,13 +224,20 @@ function PageContent() {
             illust: state.illust,
             flavor: state.flavor,
             abilities: state.abilities,
+            abilityBlocks: state.abilityBlocks,
+            abilityBlocksVersion: 1,
+            abilitySpacingAdjust:
+                state.abilitySpacingAdjust ?? 0,
             grade: state.grade,
+            gradeNumberStyle: state.gradeNumberStyle,
             power: state.power,
             raceText: state.raceText,
             raceCheck: state.raceCheck,
             shield: state.shield,
             shieldCheck: state.shieldCheck,
             isFullArt: state.isFullArt,
+            isSec: state.isSec ?? false,
+            rideDeckHideExplanations: state.rideDeckHideExplanations ?? false,
             showGlobe: state.showGlobe,
             showClan: state.showClan,
             baseColorTint: state.baseColorTint,
@@ -228,15 +246,15 @@ function PageContent() {
             customNationName: state.customNationName,
             cardNameGradient: state.cardNameGradient,
             nationGradient: state.nationGradient,
-            lang,
+
         };
 
         const result = await exportCardToZip(
             cardData,
             state.imageSrc,
             state.imageConfig,
-            state.selectedType == "base_ticket.png" ? `${TextPreset.Extra.Energy[lang]}${state.illust ? ` by ${state.illust}` : ""}`
-                : state.selectedType == "base_crest.png/ride_deck" ? `${TextPreset.Extra.Generator[lang]}${state.illust ? ` by ${state.illust}` : ""}`
+            state.selectedType == "base_ticket.png" ? `${TextPreset.Extra.Energy}${state.illust ? ` by ${state.illust}` : ""}`
+                : state.selectedType == "base_crest.png/ride_deck" ? `${TextPreset.Extra.Generator}${state.illust ? ` by ${state.illust}` : ""}`
                     : state.cardName,
             state.customLayers
         );
@@ -258,7 +276,12 @@ function PageContent() {
         state.addition, state.raceCheck, state.shieldCheck, state.imageConfig?.scale,
         state.imageConfig?.x, state.imageConfig?.y, state.isFullArt, state.showGlobe,
         state.showClan, state.baseColorTint?.enabled, state.baseColorTint?.color,
-        state.customLayers
+        state.customLayers,
+        state.abilitySpacingAdjust,
+        state.abilityBlocks,
+        state.isSec,
+        state.rideDeckHideExplanations,
+        state.gradeNumberStyle,
     ]);
 
     useEffect(() => {
@@ -310,18 +333,18 @@ function PageContent() {
                     <div className="w-full max-w-md rounded-md bg-(--panel-bg) border border-(--panel-border) shadow-2xl flex flex-col overflow-hidden">
                         <div className="border-b border-(--panel-border) bg-(--toolbar-bg) px-5 py-4">
                             <h1 className="text-base font-semibold text-(--text-primary)">
-                                {TextPreset.UnsavedModal.title[lang]}
+                                {TextPreset.UnsavedModal.title}
                             </h1>
                         </div>
                         <div className="px-5 py-4 text-sm text-(--text-secondary) leading-relaxed">
-                            {TextPreset.UnsavedModal.desc[lang]}
+                            {TextPreset.UnsavedModal.desc}
                         </div>
                         <div className="flex justify-between items-center gap-2 px-4 py-3 border-t border-(--panel-border) bg-(--toolbar-bg) rounded-b-md">
                             <button
                                 onClick={() => setShowUnsavedModal(false)}
                                 className="px-4 py-1.5 text-sm font-medium border border-(--border-color) bg-(--bg-primary) text-(--text-primary) hover:bg-(--button-hover) rounded transition-colors"
                             >
-                                {TextPreset.UnsavedModal.cancel[lang]}
+                                {TextPreset.UnsavedModal.cancel}
                             </button>
                             <div className="flex gap-2">
                                 <button
@@ -331,13 +354,13 @@ function PageContent() {
                                     }}
                                     className="px-4 py-1.5 text-sm font-medium border border-(--border-color) bg-(--bg-primary) text-(--text-primary) hover:bg-(--button-hover) rounded transition-colors"
                                 >
-                                    {TextPreset.UnsavedModal.dontSave[lang]}
+                                    {TextPreset.UnsavedModal.dontSave}
                                 </button>
                                 <button
                                     onClick={handleSaveAndLeave}
                                     className="px-4 py-1.5 text-sm font-medium bg-(--accent) text-white rounded hover:brightness-110 transition-colors"
                                 >
-                                    {TextPreset.UnsavedModal.saveLeave[lang]}
+                                    {TextPreset.UnsavedModal.saveLeave}
                                 </button>
                             </div>
                         </div>
@@ -352,10 +375,10 @@ function PageContent() {
                             <WarningIcon className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
                             <div>
                                 <h1 className="text-base font-semibold text-(--text-primary)">
-                                    {t.title[lang]}
+                                    {t.title}
                                 </h1>
                                 <p className="mt-1 text-sm text-(--text-secondary) leading-relaxed">
-                                    {t.desc[lang]}
+                                    {t.desc}
                                 </p>
                             </div>
                         </div>
@@ -363,15 +386,15 @@ function PageContent() {
                             <div className="flex gap-3">
                                 <div className="flex-1 rounded border border-(--border-color) bg-(--bg-secondary) px-4 py-2.5">
                                     <span className="text-[10px] text-(--text-secondary) uppercase tracking-wide font-medium">
-                                        {t.detectedRam[lang]}
+                                        {t.detectedRam}
                                     </span>
                                     <div className="mt-0.5 text-xl font-semibold text-red-500">
-                                        {deviceMemory ? `${deviceMemory} GB` : t.low[lang]}
+                                        {deviceMemory ? `${deviceMemory} GB` : t.low}
                                     </div>
                                 </div>
                                 <div className="flex-1 rounded border border-(--border-color) bg-(--bg-secondary) px-4 py-2.5">
                                     <span className="text-[10px] text-(--text-secondary) uppercase tracking-wide font-medium">
-                                        {t.recommended[lang]}
+                                        {t.recommended}
                                     </span>
                                     <div className="mt-0.5 text-xl font-semibold text-(--text-primary)">8 GB+</div>
                                 </div>
@@ -379,20 +402,20 @@ function PageContent() {
                             <div className="space-y-4">
                                 <div>
                                     <h2 className="font-medium text-(--text-primary) mb-2">
-                                        {t.problemsTitle[lang]}
+                                        {t.problemsTitle}
                                     </h2>
                                     <ul className="list-disc pl-5 space-y-1 text-(--text-secondary) marker:text-red-500/50">
-                                        <li>{t.problemImport[lang]}</li>
-                                        <li>{t.problemAbilities[lang]}</li>
+                                        <li>{t.problemImport}</li>
+                                        <li>{t.problemAbilities}</li>
                                     </ul>
                                 </div>
                                 <div>
                                     <h2 className="font-medium text-(--text-primary) mb-2">
-                                        {t.actionsTitle[lang]}
+                                        {t.actionsTitle}
                                     </h2>
                                     <ul className="list-disc pl-5 space-y-1 text-(--text-secondary) marker:text-(--text-secondary)">
-                                        <li>{t.actionCloseTabs[lang]}</li>
-                                        <li>{t.actionOptimizeAssets[lang]}</li>
+                                        <li>{t.actionCloseTabs}</li>
+                                        <li>{t.actionOptimizeAssets}</li>
                                     </ul>
                                 </div>
                             </div>
@@ -415,7 +438,7 @@ function PageContent() {
                                     )}
                                 </div>
                                 <span className="truncate">
-                                    {t.dontShowAgain[lang]}
+                                    {t.dontShowAgain}
                                 </span>
                             </button>
                             <div className="flex gap-2 shrink-0">
@@ -423,13 +446,13 @@ function PageContent() {
                                     onClick={() => window.close()}
                                     className="px-4 py-1.5 text-sm font-medium border border-(--border-color) bg-(--bg-primary) text-(--text-primary) hover:bg-(--button-hover) rounded transition-colors"
                                 >
-                                    {t.btnExit[lang]}
+                                    {t.btnExit}
                                 </button>
                                 <button
                                     onClick={acceptMemoryWarning}
                                     className="px-4 py-1.5 text-sm font-medium bg-(--accent) text-white rounded hover:brightness-110 transition-all"
                                 >
-                                    {t.btnContinue[lang]}
+                                    {t.btnContinue}
                                 </button>
                             </div>
                         </div>

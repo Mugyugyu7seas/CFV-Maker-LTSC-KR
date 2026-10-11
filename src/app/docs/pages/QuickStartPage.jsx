@@ -1,10 +1,10 @@
 import Link from 'next/link';
-import { useLang } from '../../../../utils/LanguageProvider';
+
 import { TextPreset } from '../../../../utils/store/Text';
 import { FolderIcon, ArrowRightIcon, ImageIcon, ZipIcon, DownloadIcon } from "../../../../components/Icon";
 
 export default function QuickStartPage() {
-  const { lang } = useLang();
+
   const t = TextPreset.QuickStartPage;
 
   return (
@@ -13,7 +13,7 @@ export default function QuickStartPage() {
         <svg className="w-5 h-5 stroke-current stroke-2 fill-none stroke-linecap-round stroke-linejoin-round" viewBox="0 0 24 24">
           <polygon points="5 3 19 12 5 21 5 3" />
         </svg>
-        {t.title[lang]}
+        {t.title}
       </div>
 
       <div className="w-full flex flex-col">
@@ -22,17 +22,17 @@ export default function QuickStartPage() {
             1. Upload Image
           </div>
           <div className={`flex flex-wrap items-center gap-y-1.5 text-base`}>
-            <span className="mr-1">{t.dragDrop[lang]}</span>
+            <span className="mr-1">{t.dragDrop}</span>
             <span className="inline-flex items-center whitespace-nowrap">
-              <span className="mr-1"><FolderIcon size={18} /></span> {t.file[lang]}
+              <span className="mr-1"><FolderIcon size={18} /></span> {t.file}
             </span>
             <span className="inline-flex items-center mx-1"><ArrowRightIcon /></span>
             <span className="inline-flex items-center whitespace-nowrap">
-              <span className="mr-1"><ImageIcon size={17} /></span> {t.importImg[lang]}
+              <span className="mr-1"><ImageIcon size={17} /></span> {t.importImg}
             </span>
             <span className="text-(--text-secondary) mx-1">|</span>
             <span className="inline-flex items-center whitespace-nowrap">
-              <span className="mr-1"><ZipIcon size={19} /></span> {t.importTemplate[lang]}
+              <span className="mr-1"><ZipIcon size={19} /></span> {t.importTemplate}
             </span>
           </div>
         </div>
@@ -42,7 +42,7 @@ export default function QuickStartPage() {
             2. Set Properties
           </div>
           <div className="text-base">
-            {t.propertiesList[lang]}
+            {t.propertiesList}
           </div>
         </div>
 
@@ -51,7 +51,7 @@ export default function QuickStartPage() {
             3. Add Abilities
           </div>
           <div className="text-base">
-            {t.writeAbilities[lang]}<Link className="font-semibold hover:underline" href="/docs?section=text-decoration">Syntax Reference</Link>
+            {t.writeAbilities}<Link className="font-semibold hover:underline" href="/docs?section=text-decoration">Syntax Reference</Link>
           </div>
         </div>
 
@@ -60,19 +60,19 @@ export default function QuickStartPage() {
             4. Export
           </div>
           <div className={`flex flex-wrap items-center gap-y-1.5 text-base`}>
-            <span className="mr-1">{t.headTo[lang]}</span>
+            <span className="mr-1">{t.headTo}</span>
             <span className="inline-flex items-center whitespace-nowrap">
-              <span className="mr-1"><FolderIcon size={18} /></span> {t.file[lang]}
+              <span className="mr-1"><FolderIcon size={18} /></span> {t.file}
             </span>
             <span className="inline-flex items-center mx-1"><ArrowRightIcon /></span>
             <span className="inline-flex items-center whitespace-nowrap">
-              <span className="mr-1"><ImageIcon size={17} /></span> {t.downloadImg[lang]}
+              <span className="mr-1"><ImageIcon size={17} /></span> {t.downloadImg}
             </span>
             <span className="inline-flex items-center mx-1"><ArrowRightIcon /></span>
-            <span className="whitespace-nowrap">{t.selectQuality[lang]}</span>
+            <span className="whitespace-nowrap">{t.selectQuality}</span>
             <span className="text-(--text-secondary) mx-1">|</span>
             <span className="inline-flex items-center whitespace-nowrap">
-              <span className="mr-1"><ZipIcon size={19} /></span> {t.exportTemplate[lang]}
+              <span className="mr-1"><ZipIcon size={19} /></span> {t.exportTemplate}
             </span>
           </div>
         </div>

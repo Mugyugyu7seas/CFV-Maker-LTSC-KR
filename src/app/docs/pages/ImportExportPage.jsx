@@ -1,15 +1,15 @@
 "use client";
 
-import { useLang } from "../../../../utils/LanguageProvider";
+
 import { TextPreset } from "../../../../utils/store/Text";
 import { ZipIcon, ImageIcon, DownloadIcon } from "../../../../components/Icon";
 
 export default function ImportExportPage() {
-  const { lang } = useLang();
+
   const t = TextPreset.ImportExportPage;
 
   const exportFormats = [
-    { icon: <ZipIcon size={20} />, label: ".zip", desc: t.formatZipDesc[lang] },
+    { icon: <ZipIcon size={20} />, label: ".zip", desc: t.formatZipDesc },
     { icon: <ImageIcon size={18} />, label: "PNG (Maximum)", desc: "2805 x 4090 - Print quality" },
     { icon: <ImageIcon size={18} />, label: "PNG (Standard)", desc: "1600 x 2336 - High quality" },
     { icon: <ImageIcon size={18} />, label: "PNG (Lite)", desc: "800 x 1168 - Web optimized" },
@@ -20,12 +20,12 @@ export default function ImportExportPage() {
       <div className="mb-8">
         <div className="flex items-center gap-2 text-xl font-semibold mb-2">
           <DownloadIcon size={20} />
-          {t.title[lang]}
+          {t.title}
         </div>
         <p className={`text-(--text-secondary) mb-4 leading-relaxed text-base`}>
-          {t.desc[lang]}
+          {t.desc}
         </p>
-        
+
         <div className="space-y-2">
           {exportFormats.map((format, idx) => (
             <div key={idx} className="flex items-start gap-4 py-3 border-b border-(--border-color)">
@@ -42,12 +42,12 @@ export default function ImportExportPage() {
       <div className="mb-4">
         <div className="flex items-center gap-1.75 text-lg font-semibold mb-2">
           <ZipIcon size={22} />
-          {t.zip[lang]}
+          {t.zip}
         </div>
         <p className={`text-(--text-secondary) mb-4 leading-relaxed text-base`}>
-          {t.zipDesc[lang]}
+          {t.zipDesc}
           <code className="text-xs bg-(--bg-secondary) px-1.5 py-0.5 rounded border border-(--border-color)">.zip</code>
-          {t.zipDesc_2[lang]}
+          {t.zipDesc_2}
         </p>
 
         <div className="bg-(--bg-secondary) rounded-xl p-5 border border-(--border-color) overflow-x-auto">

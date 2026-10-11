@@ -1,10 +1,11 @@
 "use client";
 
 import React from "react";
+import { ABILITY_EDITOR_TEXT as abilityText } from "../utils/store/AbilityEditorText";
 import { Stage, Layer, Image as KonvaImage, Rect } from "react-konva";
 import useImage from "use-image";
 
-import { useLang } from "../utils/LanguageProvider";
+
 import { TextPreset } from "../utils/store/Text";
 import { nationOption, typeOption } from "../utils/store/CardConstants";
 
@@ -13,7 +14,10 @@ import { ImageIcon, WarningIcon } from "./Icon";
 const version = process.env.TEMPLATE_VERSION;
 
 function parseVersion(v) {
-  const match = v?.match(/^(\d+)\.(\d+)\.(\d+)([a-zA-Z]*)$/);
+  if (typeof v !== "string") return null;
+  const match = v.match(
+    /^(\d+)\.(\d+)\.(\d+)(?:-?([a-zA-Z][a-zA-Z0-9]*))?$/
+  );
 
   if (!match) return null;
 
@@ -25,14 +29,14 @@ function parseVersion(v) {
   };
 }
 
-function compareVersion(imported, current, t, lang) {
+function compareVersion(imported, current, t) {
   const v1 = parseVersion(imported);
   const v2 = parseVersion(current);
 
   if (!v1 || !v2) {
     return {
       level: "danger",
-      message: t.verInvalid[lang],
+      message: t.verInvalid,
     };
   }
 
@@ -42,14 +46,14 @@ function compareVersion(imported, current, t, lang) {
   if (isPreRelease(v1) && isRelease(v2)) {
     return {
       level: "warning",
-      message: `${t.verPreToRelease[lang]} (${imported})`,
+      message: `${t.verPreToRelease} (${imported})`,
     };
   }
 
   if (isRelease(v1) && isPreRelease(v2)) {
     return {
       level: "warning",
-      message: `${t.verReleaseToPre[lang]} (${imported} -> ${current})`,
+      message: `${t.verReleaseToPre} (${imported} -> ${current})`,
     };
   }
 
@@ -59,8 +63,8 @@ function compareVersion(imported, current, t, lang) {
     return {
       level: "danger",
       message: isImportedNewer
-        ? t.verBreaking[lang]
-        : t.verIncompatible[lang],
+        ? t.verBreaking
+        : t.verIncompatible,
     };
   }
 
@@ -70,13 +74,13 @@ function compareVersion(imported, current, t, lang) {
     if (diff > 0) {
       return {
         level: "warning",
-        message: `${t.verNewer[lang]} (${imported} / ${current})`,
+        message: `${t.verNewer} (${imported} / ${current})`,
       };
     }
 
     return {
       level: "warning",
-      message: t.verDiffers[lang],
+      message: t.verDiffers,
     };
   }
 
@@ -88,7 +92,7 @@ function compareVersion(imported, current, t, lang) {
   if (patchDiff > 50) {
     return {
       level: "warning",
-      message: t.verGapLarge[lang],
+      message: t.verGapLarge,
     };
   }
 
@@ -160,7 +164,7 @@ export default function ImportModal({
   const PREVIEW_WIDTH = 100;
   const PREVIEW_HEIGHT = 146;
 
-  const { lang } = useLang();
+
 
   const t = TextPreset.ImportModal;
   const cardOptionStrings = TextPreset.CardOptions;
@@ -178,8 +182,7 @@ export default function ImportModal({
   const result = compareVersion(
     preview.version,
     version,
-    t,
-    lang
+    t
   );
 
   const warningColor =
@@ -242,7 +245,7 @@ export default function ImportModal({
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-(--panel-border) bg-(--toolbar-bg) rounded-t-md">
           <span className="text-md font-semibold text-(--text-primary)">
-            {t.title[lang]}
+            {t.title}
           </span>
         </div>
 
@@ -287,7 +290,7 @@ export default function ImportModal({
                   />
 
                   <span className="text-[10px] font-medium uppercase tracking-wider block">
-                    {t.NoImage[lang]}
+                    {t.NoImage}
                   </span>
                 </div>
               )}
@@ -306,16 +309,16 @@ export default function ImportModal({
 
               <p className="text-base font-semibold text-(--text-primary) leading-tight">
                 {isTicket
-                  ? `${TextPreset.Extra.Energy[lang]} by ${card.illust}`
+                  ? `${TextPreset.Extra.Energy} by ${card.illust}`
                   : isRideDeck
-                    ? `${TextPreset.Extra.Generator[lang]} by ${card.illust}`
+                    ? `${TextPreset.Extra.Generator} by ${card.illust}`
                     : preview.cardName}
               </p>
 
               <div className="flex flex-wrap gap-1.5 mt-2 text-sm">
 
                 <span className="uppercase px-2 py-0.5 rounded border border-(--border-color) bg-(--bg-secondary)">
-                  {card.lang || "en"}
+                  KO
                 </span>
 
                 {card.isFullArt && (
@@ -343,7 +346,7 @@ export default function ImportModal({
                       cardOptionStrings &&
                       cardOptionStrings[typeObj.id]
                     ) {
-                      return cardOptionStrings[typeObj.id][lang];
+                      return cardOptionStrings[typeObj.id];
                     }
 
                     return card.selectedType;
@@ -367,7 +370,7 @@ export default function ImportModal({
                           cardOptionStrings &&
                           cardOptionStrings[nationObj.id]
                         ) {
-                          return cardOptionStrings[nationObj.id][lang];
+                          return cardOptionStrings[nationObj.id];
                         }
 
                         return card.selectedNation
@@ -407,7 +410,7 @@ export default function ImportModal({
                 {preview.version}
 
                 <span className="text-(--text-secondary) text-xs">
-                  ({t.currentText[lang]} {version})
+                  ({t.currentText} {version})
                 </span>
 
                 {result.level !== "safe" && (
@@ -418,8 +421,8 @@ export default function ImportModal({
                       }`}
                   >
                     {result.level === "warning"
-                      ? t.verMismatch[lang]
-                      : t.verRisk[lang]}
+                      ? t.verMismatch
+                      : t.verRisk}
                   </span>
                 )}
               </div>
@@ -441,6 +444,12 @@ export default function ImportModal({
             )}
           </div>
         </div>
+
+        {card.abilityBlocks?.length > 1 && (
+          <div className="mx-4 mb-3 px-3 py-2 text-xs rounded border border-(--border-color) text-(--text-secondary)">
+            {abilityText.importInfo(card.abilityBlocks.length)}
+          </div>
+        )}
 
         {/* Warning */}
         {result.level !== "safe" && (
@@ -465,7 +474,7 @@ export default function ImportModal({
             onClick={onCancel}
             className="px-4 py-1.5 text-sm font-medium border border-(--border-color) bg-(--bg-primary) text-(--text-primary) hover:bg-(--button-hover) rounded disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
           >
-            {t.btnCancel[lang]}
+            {t.btnCancel}
           </button>
 
           <button
@@ -474,8 +483,8 @@ export default function ImportModal({
             className="px-4 py-1.5 text-sm font-medium bg-(--accent) text-white rounded hover:brightness-110 disabled:opacity-50"
           >
             {loading
-              ? t.btnImporting[lang]
-              : t.btnImport[lang]}
+              ? t.btnImporting
+              : t.btnImport}
           </button>
         </div>
       </div>

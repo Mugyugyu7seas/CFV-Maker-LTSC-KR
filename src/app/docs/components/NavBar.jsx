@@ -1,17 +1,16 @@
 "use client"
-import { useLang } from '../../../../utils/LanguageProvider';
+
 import { useTheme } from '../../../../utils/ThemeProvider';
 import { TextPreset } from '../../../../utils/store/Text';
 
 import Tooltip from "../../../../components/Tooltip";
-import DropdownMenu from '../../../../components/DropDownMenu';
 
 import { EditIcon } from '../../../../components/Icon';
 
 const version = process.env.TEMPLATE_VERSION;
 
 export default function NavBar() {
-    const { lang, setLang } = useLang();
+
     const { theme, toggleTheme } = useTheme();
 
     const t = TextPreset.EditNav
@@ -23,36 +22,10 @@ export default function NavBar() {
                     CFV MAKER
                 </span>
 
-                <DropdownMenu
-                    position="center"
-                    trigger={
-                        <span className="font-bold text-(--text-secondary) tracking-tight">
-                            <span className="uppercase">
-                                {lang}
-                            </span>
-
-                            {" "}
-                            {version}
-                        </span>
-                    }
-                    items={[
-                        {
-                            section: t.Lang[lang],
-                            label: `English ${lang === "en" ? t.Current[lang] : ""}`,
-                            disabled: lang === "en",
-                            onClick: () => setLang("en"),
-                        },
-                        {
-                            section: t.Lang[lang],
-                            label: `ไทย ${lang === "th" ? t.Current[lang] : ""}`,
-                            disabled: lang === "th",
-                            onClick: () => setLang("th"),
-                        }
-                    ]}
-                />
+                <span className="font-bold text-(--text-secondary) tracking-tight">KO {version}</span>
             </div>
             <div className="flex items-center gap-2">
-                <Tooltip position="bottom" text={theme === 'light' ? t.DarkMode[lang] : t.LightMode[lang]}>
+                <Tooltip position="bottom" text={theme === 'light' ? t.DarkMode : t.LightMode}>
                     <button onClick={toggleTheme} className="p-2 rounded-md border transition-all bg-(--bg-secondary) border-(--border-color) text-(--text-primary) hover:bg-(--bg-primary)">
                         {theme === 'light' ? (
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -69,7 +42,7 @@ export default function NavBar() {
                         )}
                     </button>
                 </Tooltip>
-                <a href="../" target='_blank' className="px-3 py-1.5 rounded-md text-sm font-medium transition-all border bg-(--bg-secondary) border-(--border-color) text-(--text-primary) hover:bg-(--bg-primary) flex items-center gap-2"><EditIcon />{t.Editor[lang]}</a>
+                <a href="../" target='_blank' className="px-3 py-1.5 rounded-md text-sm font-medium transition-all border bg-(--bg-secondary) border-(--border-color) text-(--text-primary) hover:bg-(--bg-primary) flex items-center gap-2"><EditIcon />{t.Editor}</a>
             </div>
         </nav>
     )
