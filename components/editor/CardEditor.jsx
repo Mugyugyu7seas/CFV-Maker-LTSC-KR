@@ -1,9 +1,19 @@
+// CFV hide-explanations and SEC UI v1
 "use client";
-import React, { useState, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
+import { getGradeNumberFill } from "../../utils/GradeNumberStyle";
+import React, { useState, useCallback, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
 import { Stage, Layer, Image as KonvaImage, Rect, Group, Text } from 'react-konva';
 import useImage from 'use-image';
+import Konva from 'konva';
+import { createAbilityBlock, getAbilityBackgroundColor, tintAbilityImageData } from '../../utils/AbilityBlocks';
+// Ability window spacing v2: measured bounds and one top-only flavour gap.
+import { getAbilityBlockLayout, getAbilityFlavorY } from '../../utils/AbilityBlockLayout';
+import { sameAbilityImageBounds, measureAbilityImageBounds } from '../../utils/AbilityImageBounds';
+import { ABILITY_WINDOW_SPACING } from '../../utils/store/AbilityWindowSpacing';
+import { ABILITY_EDITOR_TEXT as abilityText } from '../../utils/store/AbilityEditorText';
 import AbilitiesBox from './AbilitiesOutput';
 import { getBoxPath } from '../../utils/store/CardConstants';
+import { CARD_TYPOGRAPHY as typography } from '../../utils/store/Typography';
 import { useIconConfig } from '../../utils/store/IconConfig';
 import {
   getBasePath,
@@ -14,12 +24,15 @@ import {
   getRacePath,
   getShieldPath,
   getClanPath,
-  getLocalizedPath,
+  getKoreanAssetPath,
   getAssetPath,
   getGradePath
 } from '../../utils/PathHelper';
 import { typeLabel, RACE_OVERLAY, getShieldOverlay } from '../../utils/store/CardConstants';
 
+const EMPTY_OVERLAY_FILTERS = [];
+const RGB_OVERLAY_FILTERS = [Konva.Filters.RGB];
+const DEFAULT_DARK_ABILITY_TINT = { r: 60, g: 60, b: 60 };
 const MAX_CHARS_PER_LINE = 60;
 const MAX_RENDER_LINES = 2;
 let BASE_WIDTH = 400;
@@ -45,7 +58,7 @@ function wrapFlavorText(text) {
   return result.slice(0, MAX_RENDER_LINES).join("\n");
 }
 
-export default function CardEditor({
+function CardEditor({
   overlayNation,
   overlayClan,
   overlayType,
@@ -58,12 +71,16 @@ export default function CardEditor({
   overlayRaceText,
   raceCheck,
   overlayGrade,
+  gradeNumberStyle,
   overlayPower,
   overlayShieldValue,
   shieldCheck,
   overlayIllust,
   overlayFlavor,
   overlayAbilities,
+  abilityBlocks,
+  onAbilityLayoutChange,
+  abilitySpacingAdjust = 0,
   isFullArt,
   showGlobe,
   customLayers,
@@ -83,7 +100,6 @@ export default function CardEditor({
   exportPreset = 'standard',
   onImageConfigChange,
   initialImageConfig,
-  lang,
   onExportEnd,
 }) {
   const ICON_CONFIG = useIconConfig();
@@ -93,16 +109,59 @@ export default function CardEditor({
   const hasAppliedInitialConfig = useRef(
     Boolean(initialImageConfig?.scale != null && imageSrc)
   );
-  const baseOverlayGroupRef = useRef(null);
+  const baseOverlayRef = useRef(null);
 
-  const font = lang === "en" ? "Columbia" : "PSLxImperial";
-  const fontSize = lang === "en" ? 11 : 18;
-  const lineHeight = lang === "en" ? 14.5 : 16.97;
+  const font = typography.bodyFont;
+  const lightFont = typography.bodyLightFont ?? font;
+  const fontSize = typography.bodyFontSize;
+  const lineHeight = typography.bodyLineHeight;
+  const bodyLightYOffset =
+    typography.bodyLightYOffset ?? 0;
+  // 라이드 덱 크레스트는 내부 설정을,
+  // 나머지 카드는 기존 UI 보정값을 사용한다.
+  const spacingAdjust =
+    Number(
+      overlayType === "base_crest.png/ride_deck"
+        ? (typography.rideDeckSpacingAdjust ?? 0)
+        : abilitySpacingAdjust
+    ) || 0;
 
-  const [boxLine, setBoxLine] = useState(0);
-  const [boxLine2, setBoxLine2] = useState(0);
+  const bodyLetterSpacing =
+    (typography.bodyLetterSpacing ?? 0) + spacingAdjust;
+
+  const bodyWordSpacing =
+    (typography.bodyWordSpacing ?? 0) + spacingAdjust;
+
+  const bodyYOffset =
+    typography.bodyYOffset ?? 0;
+
+  const [abilityMeasurements, setAbilityMeasurements] = useState({});
+  const renderedAbilityBlocks = useMemo(() =>
+    abilityBlocks ?? [createAbilityBlock("generated-ability", overlayAbilities || "")],
+    [abilityBlocks, overlayAbilities]);
+  const recordAbilityMeasurement = useCallback((id, text, metrics) => {
+    setAbilityMeasurements((previous) => {
+      const before = previous[id];
+      if (before?.text === text && before.lineCount === metrics.lineCount &&
+          (before.hideExplanations === true) === (metrics.hideExplanations === true) &&
+          before.widthOverflow === metrics.widthOverflow &&
+          before.backgroundReady === metrics.backgroundReady &&
+          sameAbilityImageBounds(before.backgroundBounds, metrics.backgroundBounds)) return previous;
+      return { ...previous, [id]: { text, ...metrics } };
+    });
+  }, []);
+
+  useEffect(() => {
+    const activeIds = new Set(renderedAbilityBlocks.map((block) => block.id));
+    setAbilityMeasurements((previous) => {
+      if (Object.keys(previous).every((id) => activeIds.has(id))) return previous;
+      return Object.fromEntries(Object.entries(previous).filter(([id]) => activeIds.has(id)));
+    });
+  }, [renderedAbilityBlocks]);
 
   const [textWidth, setTextWidth] = useState(0);
+  const flavorDisplayWidth =
+        textWidth * (typography.flavorScaleX ?? 1);
   const [contentConfig, setContentConfig] = useState(() =>
     initialImageConfig?.scale ? initialImageConfig : { scale: 1, x: 0, y: 0 }
   );
@@ -147,9 +206,21 @@ export default function CardEditor({
   const isOrder = !isUnit && !isMarker && !isEnergy && !isCrest
   const hasClan = (showClan || isEncounter) && overlayClan !== 'race.png';
 
-  const totalAbilitiesLines = lang == "en" ? 14 : 12;
-  const firstMaxLines = Math.max(0, totalAbilitiesLines - boxLine2);
-  const secondMaxLines = Math.max(0, totalAbilitiesLines - boxLine);
+  const totalAbilitiesLines = typography.abilityLines;
+  const abilityLayout = useMemo(() => getAbilityBlockLayout(
+    renderedAbilityBlocks, abilityMeasurements,
+    { isUnit, isCrest, isEnergy, maxLines: totalAbilitiesLines, windowGap: ABILITY_WINDOW_SPACING.windowGap }
+  ), [renderedAbilityBlocks, abilityMeasurements, isUnit, isCrest, isEnergy, totalAbilitiesLines, ABILITY_WINDOW_SPACING.windowGap]);
+
+  useEffect(() => {
+    onAbilityLayoutChange?.({
+      ready: abilityLayout.ready,
+      overflow: abilityLayout.overflow,
+      totalLines: abilityLayout.totalLines,
+      blockCount: abilityLayout.items.length,
+    });
+  }, [abilityLayout.ready, abilityLayout.overflow, abilityLayout.totalLines,
+      abilityLayout.items.length, onAbilityLayoutChange]);
 
   const [isExporting, setIsExporting] = useState(false);
 
@@ -163,31 +234,40 @@ export default function CardEditor({
   const shieldFile = getShieldOverlay(shieldCheck, overlayShieldValue);
   const shieldPath = shieldFile ? getShieldPath(shieldFile) : null;
   const raceOverlayPath = getRacePath(RACE_OVERLAY);
-  const [base_overlay] = useImage(baseColorTint?.enabled ? '/assets/base/base_overlay_custom.png' : '/assets/base/base_overlay.png');
-  const [base_overlay_top] = useImage(getLocalizedPath('/assets/base/base_overlay_top.png'));
-  const encounterFrame = isDarkMode ? '/assets/frame/EN.png' : null;
-  const tokenFramePath = '/assets/frame/token.png';
-  const globe = showGlobe ? 'assets/base/globe.png' : null;
+  const [base_overlay] = useImage(getKoreanAssetPath(baseColorTint?.enabled ? '/assets/base/base_overlay_custom.png' : '/assets/base/base_overlay.png'));
+  const [base_overlay_top] = useImage(getKoreanAssetPath('/assets/base/base_overlay_top.png'));
+  const encounterFrame = isDarkMode ? getKoreanAssetPath('/assets/frame/EN.png') : null;
+  const tokenFramePath = getKoreanAssetPath('/assets/frame/token.png');
+  const globe = showGlobe ? getBasePath('globe.png') : null;
 
   const typePath = overlayType ? getBasePath(overlayType, (isNormalUnit || isTriggerUnit || isTokenUnit || !isUnit) ? false : true).split('.png')[0] + '.png' : null;
   let tagPath = tagFile ? getTagPath(tagFile) : null;
 
-  const [debouncedAbilities, setDebouncedAbilities] = useState("");
-  const [secondAbilities, setSecondAbilities] = useState("");
+
 
   // Custom
   const customSuffix = isOrder ? '_o' : '';
 
-  let nation_bg = `/assets/base/nation/custom${customSuffix}.png`;
+  const nation_bg =
+    getNationPath(`custom${customSuffix}.png`);
 
-  let gradient = `/assets/base/nation/custom/gradient${customSuffix}.png`;
-  let color = `/assets/base/nation/custom/color${customSuffix}.png`;
+  const gradient =
+    getNationPath(`custom/gradient${customSuffix}.png`);
 
-  let nation = `/assets/base/nation/custom/nation${customSuffix}.png`;
-  let nation_frame = `/assets/base/nation/custom/nation_frame${customSuffix}.png`;
+  const color =
+    getNationPath(`custom/color${customSuffix}.png`);
 
-  let front = `/assets/base/nation/custom/front${customSuffix}.png`;
-  let hide_flag = `/assets/base/nation/custom/hide_flag${customSuffix}.png`;
+  const nation =
+    getNationPath(`custom/nation${customSuffix}.png`);
+
+  const nation_frame =
+    getNationPath(`custom/nation_frame${customSuffix}.png`);
+
+  const front =
+    getNationPath(`custom/front${customSuffix}.png`);
+
+  const hide_flag =
+    getNationPath(`custom/hide_flag${customSuffix}.png`);
 
   // --
 
@@ -206,80 +286,34 @@ export default function CardEditor({
     tagPath = tagPath.replace(".png", "2.png");
   }
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-
-      if (isUnit || isMarker || isCrest) {
-        setDebouncedAbilities(overlayAbilities || "");
-        setSecondAbilities("");
-        return;
-      }
-
-      const lines = overlayAbilities.split("\n");
-
-      const blocks = [];
-      let currentBlock = [];
-
-      for (const line of lines) {
-        if (line.trim() === "") {
-          if (currentBlock.length > 0) {
-            blocks.push(currentBlock.join("\n"));
-            currentBlock = [];
-          }
-        } else {
-          currentBlock.push(line);
-        }
-      }
-
-      if (currentBlock.length > 0) {
-        blocks.push(currentBlock.join("\n"));
-      }
-
-      setDebouncedAbilities(blocks[0] || "");
-      setSecondAbilities(blocks[1] || "");
-
-    }, 250);
-
-    return () => clearTimeout(handler);
-  }, [overlayAbilities, isUnit]);
-
-  useEffect(() => {
-    if (!secondAbilities) {
-      setBoxLine2(0);
-    }
-  }, [secondAbilities]);
-
-  useEffect(() => {
-    if (!debouncedAbilities) {
-      setBoxLine(0);
-    }
-  }, [debouncedAbilities]);
+  // Box boundaries now come exclusively from abilityBlocks.
+  // Legacy blank-line conversion is confined to template import (CardFormat).
 
   const [flavorBG] = isDarkMode
-    ? useImage(('/assets/flavor/box_enc.png'))
-    : useImage(('/assets/flavor/box.png'));
+    ? useImage(getKoreanAssetPath('/assets/flavor/box_enc.png'))
+    : useImage(getKoreanAssetPath('/assets/flavor/box.png'));
 
   const [flavorL] = isDarkMode
-    ? useImage(('/assets/flavor/fadeL_enc.png'))
-    : useImage(('/assets/flavor/fadeL.png'));
+    ? useImage(getKoreanAssetPath('/assets/flavor/fadeL_enc.png'))
+    : useImage(getKoreanAssetPath('/assets/flavor/fadeL.png'));
 
   const [flavorR] = isDarkMode
-    ? useImage(('/assets/flavor/fadeR_enc.png'))
-    : useImage(('/assets/flavor/fadeR.png'));
+    ? useImage(getKoreanAssetPath('/assets/flavor/fadeR_enc.png'))
+    : useImage(getKoreanAssetPath('/assets/flavor/fadeR.png'));
 
   const [flavorBG2] = isDarkMode
-    ? useImage(('/assets/flavor/box2_enc.png'))
-    : useImage(('/assets/flavor/box2.png'));
+    ? useImage(getKoreanAssetPath('/assets/flavor/box2_enc.png'))
+    : useImage(getKoreanAssetPath('/assets/flavor/box2.png'));
 
   const [flavorL2] = isDarkMode
-    ? useImage(('/assets/flavor/fadeL2_enc.png'))
-    : useImage(('/assets/flavor/fadeL2.png'));
+    ? useImage(getKoreanAssetPath('/assets/flavor/fadeL2_enc.png'))
+    : useImage(getKoreanAssetPath('/assets/flavor/fadeL2.png'));
 
   const [flavorR2] = isDarkMode
-    ? useImage(('/assets/flavor/fadeR2_enc.png'))
-    : useImage(('/assets/flavor/fadeR2.png'));
+    ? useImage(getKoreanAssetPath('/assets/flavor/fadeR2_enc.png'))
+    : useImage(getKoreanAssetPath('/assets/flavor/fadeR2.png'));
 
-  const [DIcon] = useImage(isCrest ? ('/assets/icon_landscape.png') : ('/assets/icon.png'));
+  const [DIcon] = useImage(getKoreanAssetPath(isCrest ? '/assets/icon_landscape.png' : '/assets/icon.png'));
 
   const [imageObj] = useImage(imageSrc ? imageSrc : null);
 
@@ -297,25 +331,18 @@ export default function CardEditor({
 
   const isBaseOverlayVisible = Boolean(base_overlay && (isNormalUnit || isTriggerUnit || isTokenUnit));
 
-  useEffect(() => {
-    const node = baseOverlayGroupRef.current;
+  // Rebuild the tint cache only when the source/colour/size/export scale changes.
+  // The previous inline ref recached the image on every text edit.
+  useLayoutEffect(() => {
+    const node = baseOverlayRef.current;
     if (!node) return;
-
     node.clearCache();
-
-    if (isBaseOverlayVisible) {
-      node.cache({
-        x: 0,
-        y: 0,
-        width: BASE_WIDTH,
-        height: BASE_HEIGHT
-      });
-      const layer = node.getLayer();
-      if (layer) {
-        layer.batchDraw();
-      }
+    if (baseColorTint?.enabled && base_overlay) {
+      node.cache({ x: 0, y: 0, width: BASE_WIDTH, height: BASE_HEIGHT, pixelRatio: isExporting || 1 });
     }
-  }, [isBaseOverlayVisible, base_overlay, baseColorTint?.enabled, baseColorTint?.color, isTriggerUnit, BASE_WIDTH, BASE_HEIGHT]);
+    node.getLayer()?.batchDraw();
+  }, [base_overlay, baseColorTint?.enabled, baseColorTint?.color,
+      BASE_WIDTH, BASE_HEIGHT, isExporting, fontsLoaded]);
 
   useEffect(() => {
     if (initialImageConfig?.scale &&
@@ -354,8 +381,16 @@ export default function CardEditor({
   }, [exportTrigger]);
 
   useEffect(() => {
-    if (flavorTextRef.current) setTextWidth(flavorTextRef.current.width());
-  }, [overlayFlavor, fontsLoaded]);
+    if (flavorTextRef.current) {
+      setTextWidth(flavorTextRef.current.width());
+    }
+  }, [
+    overlayFlavor,
+    fontsLoaded,
+    typography.flavorFont,
+    typography.flavorFontSize,
+    typography.flavorLetterSpacing
+  ]);
 
   useEffect(() => {
     if (isInternalUpdate.current) {
@@ -368,6 +403,13 @@ export default function CardEditor({
 
   const handleExport = async () => {
     if (!stageRef.current) return;
+    if (!abilityLayout.ready || abilityLayout.overflow) {
+      window.alert(abilityLayout.overflow
+        ? abilityText.exportOverflow
+        : abilityText.exportPending);
+      onExportEnd?.();
+      return;
+    }
 
     const currentPreset = EXPORT_PRESETS[exportPreset] || EXPORT_PRESETS.standard;
     const exportScale = currentPreset.width / BASE_WIDTH;
@@ -535,33 +577,37 @@ export default function CardEditor({
 
   const processedFlavor = wrapFlavorText(overlayFlavor);
   const flavorLine = processedFlavor.split("\n").length;
+  const flavorLineHeightValue = typography.flavorLineHeight ?? 1;
+  const flavorPaddingY = typography.flavorPaddingY ?? 3;
+  const flavorYOffset = typography.flavorYOffset ?? 0;
 
-  const getFlavorY = () => {
-    const totalLines = secondAbilities
-      ? boxLine + boxLine2 + (lang == "en" ? 1.5 : 1.25)
-      : boxLine;
+  const nameAreaX = typography.nameAreaX ?? 95;
+  const nameAreaWidth = typography.nameAreaWidth ?? 150;
+  const nameYOffset = typography.nameYOffset ?? 0;
+  const nameLetterSpacing = typography.nameLetterSpacing ?? 0;
+  // 카드명 칸 중앙 정렬 관련 선언
 
-    if (totalLines === 0) {
-      return flavorLine > 1 ? 460 : 475;
-    }
+  const flavorJoinOverlap = 0;    // 플레이버 텍스트 접합선 관련으로 시도한건데 안만들어도 됐었음
 
-    if (totalLines === 1) {
-      return (flavorLine > 1 ? 460 : 475) - (lang == "en" ? 30 : 33);
-    }
+  const flavorCenterWidth =
+    flavorDisplayWidth + 2 + (flavorJoinOverlap * 2);
 
-    return (
-      flavorLine > 1
-        ? 460 - (18 + (totalLines * (lang == "en" ? 14.5 : 17)))
-        : 475 - (18 + (totalLines * (lang == "en" ? 14.5 : 17)))
-    );
-  };
+  const flavorTextHeight =
+    flavorLine *
+    typography.flavorFontSize *
+    flavorLineHeightValue;
 
-  useEffect(() => {
-    if (!overlayAbilities || overlayAbilities.trim() === "") {
-      setBoxLine(0);
-      setBoxLine2(0);
-    }
-  }, [overlayAbilities]);
+  const flavorBoxHeight =
+    flavorTextHeight + (flavorPaddingY * 2);
+
+  const flavorBaseY = 494 - flavorBoxHeight;
+
+  const getFlavorY = () => getAbilityFlavorY(abilityLayout, {
+    flavorBoxHeight,
+    parentY: isUnit ? 0 : 21.5,
+    emptyY: flavorBaseY + flavorYOffset,
+    flavorGap: ABILITY_WINDOW_SPACING.flavorGap,
+  });
 
   const [nameScaleX, setNameScaleX] = useState(1);
   const [cardNameWidth, setCardNameWidth] = useState(0);
@@ -574,7 +620,7 @@ export default function CardEditor({
   useLayoutEffect(() => {
     if (cardNameRef.current) {
       const actualWidth = cardNameRef.current.width();
-      const maxWidth = 240;
+      const maxWidth = typography.nameAreaWidth ?? 240;
 
       setCardNameWidth(actualWidth);
 
@@ -584,7 +630,14 @@ export default function CardEditor({
         setNameScaleX(1);
       }
     }
-  }, [overlayCardName, fontsLoaded]);
+  }, [
+    overlayCardName,
+    fontsLoaded,
+    typography.nameFont,
+    typography.nameFontSize,
+    typography.nameLetterSpacing,
+    typography.nameAreaWidth
+  ]);
 
   const [subtypeScaleX, setSubtypeScaleX] = useState(1);
   const [subtypeWidth, setSubtypeWidth] = useState(0);
@@ -593,7 +646,7 @@ export default function CardEditor({
   useLayoutEffect(() => {
     if (subtypeRef.current) {
       const actualWidth = subtypeRef.current.width();
-      const maxWidth = 54;
+      const maxWidth = 55;
 
       setSubtypeWidth(actualWidth);
 
@@ -603,7 +656,13 @@ export default function CardEditor({
         setSubtypeScaleX(1);
       }
     }
-  }, [subOrderType, lang, fontsLoaded]);
+  }, [
+    subOrderType,
+    fontsLoaded,
+    typography.nationFont,
+    typography.nationFontSize,
+    typography.subtypeLetterSpacing,
+  ]);
 
   useLayoutEffect(() => {
     if (raceTextRef.current) {
@@ -618,7 +677,13 @@ export default function CardEditor({
         setRaceScaleX(1);
       }
     }
-  }, [overlayRaceText, hasClan, fontsLoaded]);
+}, [
+  overlayRaceText,
+  hasClan,
+  fontsLoaded,
+  typography.raceFont,
+  typography.raceFontSize,
+  typography.raceLetterSpacing]);
 
   const [nationScaleX, setNationScaleX] = useState(1);
   const [nationTextWidth, setNationTextWidth] = useState(0);
@@ -637,7 +702,13 @@ export default function CardEditor({
         setNationScaleX(1);
       }
     }
-  }, [customNationName, fontsLoaded]);
+  }, [
+    customNationName,
+    fontsLoaded,
+    typography.nationFont,
+    typography.nationFontSize,
+    typography.nationLetterSpacing,
+  ]);
 
   return (
     <Stage
@@ -703,24 +774,11 @@ export default function CardEditor({
           width={BASE_WIDTH}
           height={BASE_HEIGHT}
           listening={false}
-          filters={baseColorTint?.enabled ? [Konva.Filters.RGB] : []}
+          filters={baseColorTint?.enabled ? RGB_OVERLAY_FILTERS : EMPTY_OVERLAY_FILTERS}
           red={baseColorTint?.enabled ? parseInt(baseColorTint.color.slice(1, 3), 16) : 255}
           green={baseColorTint?.enabled ? parseInt(baseColorTint.color.slice(3, 5), 16) : 255}
           blue={baseColorTint?.enabled ? parseInt(baseColorTint.color.slice(5, 7), 16) : 255}
-          ref={(node) => {
-            if (node) {
-              node.clearCache();
-              if (baseColorTint?.enabled) {
-                node.cache({
-                  x: 0,
-                  y: 0,
-                  width: BASE_WIDTH,
-                  height: BASE_HEIGHT,
-                  pixelRatio: isExporting || 1
-                });
-              }
-            }
-          }}
+          ref={baseOverlayRef}
         />
         <KonvaImage visible={Boolean(base_overlay_top && (isNormalUnit || isTriggerUnit || isTokenUnit))} image={base_overlay_top} width={BASE_WIDTH} height={BASE_HEIGHT} listening={false} />
 
@@ -785,22 +843,23 @@ export default function CardEditor({
         {/* Subtype */}
         <Group
           visible={Boolean(isSubType && !isMarker && !isUnit)}
-          key={`${lang}-${subOrderType}-${fontsLoaded}`}
-          x={19.25}
-          y={540.75 + (isMobile ? (lang == "en" ? 2.25 : -0.5) : 0) + (lang == "en" ? 0 : 0.25)}
+          key={`${subOrderType}-${fontsLoaded}`}
+          x={46.17}
+          y={541.7 + (isMobile ? (-0.5) : 0) + (0.25)}
         >
           <Text
             ref={subtypeRef}
             text={subOrderType}
-            x={27}
+            x={0}
             offsetX={subtypeWidth / 2}
-            fontSize={lang == "en" ? 9 : 12}
-            fontFamily={lang == "en" ? "OptimaLT" : "Sirin"}
+            fontSize={8.35}
+            fontFamily={"VGKRBody"}
+            letterSpacing={typography.subtypeLetterSpacing ?? 0}
             stroke={subOrderColor}
-            strokeWidth={2}
-            scaleY={lang == "en" ? 1 : 0.85}
+            strokeWidth={1.6}
+            scaleY={1}
             scaleX={subtypeScaleX}
-            fontStyle={lang == "en" ? "bold" : "normal"}
+            fontStyle={"normal"}
             align="center"
             lineJoin="round"
             lineCap="round"
@@ -810,14 +869,15 @@ export default function CardEditor({
 
           <Text
             text={subOrderType}
-            x={27}
+            x={0}
             offsetX={subtypeWidth / 2}
-            fontSize={lang == "en" ? 9 : 12}
-            fontFamily={lang == "en" ? "OptimaLT" : "Sirin"}
+            fontSize={8.35}
+            fontFamily={"VGKRBody"}
+            letterSpacing={typography.subtypeLetterSpacing ?? 0}
             fill="white"
-            scaleY={lang == "en" ? 1 : 0.85}
+            scaleY={1}
             scaleX={subtypeScaleX}
-            fontStyle={lang == "en" ? "bold" : "normal"}
+            fontStyle={"normal"}
             align="center"
             perfectDrawEnabled={false}
             listening={false}
@@ -845,17 +905,26 @@ export default function CardEditor({
         <Text
           ref={cardNameRef}
           text={overlayCardName}
-          x={(isCrest ? 180 : 85 + (240 / 2)) - (lang == "en" ? 0 : 4)}
-          y={(isCrest ? 337.75 : (isUnit ? 513 : 534.25)) - (lang == "en" ? 0 : 5.75)}
-          fontSize={lang == "en" ? 18.14 : 25}
-          skewX={lang == "en" ? (-20 * (Math.PI / 180)) : 0}
-          scaleX={nameScaleX}
-          scaleY={lang == "en" ? 0.85 : 0.9}
+          x={
+            isCrest
+              ? 180 + typography.nameXOffset
+              : (typography.nameAreaX + typography.nameAreaWidth / 2)
+                + typography.nameXOffset
+          }
+          y={(isCrest ? 337.75 : (isUnit ? 513 : 534.25)) + typography.nameYOffset}
+          fontSize={typography.nameFontSize}
+          skewX={typography.nameSkewX * (Math.PI / 180)}
+          scaleX={nameScaleX * (typography.nameScaleX ?? 1)}
+          scaleY={typography.nameScaleY}
+          letterSpacing={typography.nameLetterSpacing ?? 0}
           wrap="none"
           ellipsis={false}
-          fontFamily={lang == "en" ? "Anton" : "PSLxOlarn"}
-          fontStyle={lang == "en" ? 500 : 'normal'}
+          fontFamily={typography.nameFont}
+          fontStyle={typography.nameFontStyle ?? "normal"}
           fill="black"
+          stroke="black"
+          strokeWidth={typography.nameStrokeWidth ?? 0}
+          lineJoin="round"
           align="center"
           perfectDrawEnabled={false}
           listening={false}
@@ -866,20 +935,25 @@ export default function CardEditor({
         <Group
           visible={Boolean(customNationEnabled && (isUnit || isOrder))}
           x={isOrder ? 174 : 242}
-          y={(isMobile ? 541 : 539) + (isOrder ? 19 : 0) - (lang == "en" ? -1 : 3.5)}
-          scaleY={lang == "en" ? 1 : 0.95}
+          y={
+            (isMobile ? 541 : 539)
+            + (isOrder ? 19 : 0)
+            + (typography.nationYOffset ?? 0)
+          }
+          scaleY={0.95}
         >
           <Text
             ref={nationTextRef}
             text={customNationName}
-            wrap='none'
-            fontSize={lang == "en" ? 10 : 17}
-            fontFamily={lang == "en" ? "OptimaLT" : "PSLxImperial"}
+            wrap="none"
+            fontSize={typography.nationFontSize}
+            fontFamily={typography.nationFont}
+            letterSpacing={typography.nationLetterSpacing ?? 0}
             lineJoin="round"
             stroke={solidColor}
             strokeWidth={1.5}
             scaleX={nationScaleX}
-            offsetX={(nationTextWidth / 2)}
+            offsetX={nationTextWidth / 2}
             x={(isOrder ? 50 : 100) / 2}
             align="center"
             perfectDrawEnabled={false}
@@ -888,12 +962,13 @@ export default function CardEditor({
 
           <Text
             text={customNationName}
-            wrap='none'
-            fontSize={lang == "en" ? 10 : 17}
-            fontFamily={lang == "en" ? "OptimaLT" : "PSLxImperial"}
+            wrap="none"
+            fontSize={typography.nationFontSize}
+            fontFamily={typography.nationFont}
+            letterSpacing={typography.nationLetterSpacing ?? 0}
             fill="white"
             scaleX={nationScaleX}
-            offsetX={(nationTextWidth / 2)}
+            offsetX={nationTextWidth / 2}
             x={(isOrder ? 50 : 100) / 2}
             align="center"
             perfectDrawEnabled={false}
@@ -905,14 +980,19 @@ export default function CardEditor({
         <Group
           visible={Boolean((customNationEnabled || raceCheck || overlayClan !== `race.png`) && isUnit)}
           x={(hasClan && !customNationEnabled) ? 297 : 242}
-          y={(isMobile ? 556.5 : 554.5) - (lang == "en" ? 0 : 2.5)}
+          y={
+            (isMobile ? 556.5 : 554.5)
+            + (typography.raceYOffset ?? 0)
+          }
         >
           <Text
             ref={raceTextRef}
             text={overlayRaceText}
             wrap='none'
-            fontSize={lang == "en" ? 8 : 11}
-            fontFamily={lang == "en" ? "OptimaLT" : "PSLxImperial"}
+            fontSize={typography.raceFontSize}
+            fontFamily={typography.raceFont}
+            letterSpacing={typography.raceLetterSpacing ?? 0}
+
             lineJoin="round"
             stroke="black"
             strokeWidth={1.5}
@@ -927,8 +1007,10 @@ export default function CardEditor({
           <Text
             text={overlayRaceText}
             wrap='none'
-            fontSize={lang == "en" ? 8 : 11}
-            fontFamily={lang == "en" ? "OptimaLT" : "PSLxImperial"}
+            fontSize={typography.raceFontSize}
+            fontFamily={typography.raceFont}
+            letterSpacing={typography.raceLetterSpacing ?? 0}
+
             fill="white"
             scaleX={raceScaleX}
             offsetX={(raceTextWidth / 2)}
@@ -943,10 +1025,10 @@ export default function CardEditor({
         <Group visible={!isMarker && !isEnergy && !isCrest}>
           <Text
             text={overlayGrade}
-            x={-20} y={14}
+            x={-20} y={13}
             width={100}
             wrap='none'
-            fontSize={28}
+            fontSize={30}
             fontFamily="Anton"
             stroke="black"
             strokeWidth={3}
@@ -961,7 +1043,7 @@ export default function CardEditor({
             wrap='none'
             fontSize={28}
             fontFamily="Anton"
-            fill="white"
+            fill={getGradeNumberFill(gradeNumberStyle, overlayNation, customNationEnabled)}
             align="center"
             perfectDrawEnabled={false}
             listening={false}
@@ -1045,48 +1127,56 @@ export default function CardEditor({
           listening={false}
         />
         {/* Flavor */}
-        <Group visible={Boolean(overlayFlavor && !isFullArt && !isMarker)} y={isUnit ? 0 : 21.5}>
+        <Group
+  visible={Boolean(overlayFlavor && !isFullArt && !isMarker && !isCrest)}  y={isUnit ? 0 : 21.5}>
           <Group y={getFlavorY()}>
             <KonvaImage
               image={flavorLine > 1 ? flavorBG2 : flavorBG}
               x={200}
-              height={flavorLine > 1 ? 34 : 19}
-              width={textWidth + 2}
-              offsetX={(textWidth + 2) / 2}
+              height={flavorBoxHeight}
+              width={flavorCenterWidth}
+              offsetX={flavorCenterWidth / 2}
               perfectDrawEnabled={false}
               listening={false}
             />
 
             <KonvaImage
               image={flavorLine > 1 ? flavorL2 : flavorL}
-              x={200 - (textWidth / 2) - 31}
+              x={200 - (flavorDisplayWidth / 2) - 31}
               width={30}
-              height={flavorLine > 1 ? 34 : 19}
+              height={flavorBoxHeight}
               perfectDrawEnabled={false}
               listening={false}
             />
 
             <KonvaImage
               image={flavorLine > 1 ? flavorR2 : flavorR}
-              x={200 + (textWidth / 2) + 1}
+              x={200 + (flavorDisplayWidth / 2) + 1}
               width={30}
-              height={flavorLine > 1 ? 34 : 19}
+              height={flavorBoxHeight}
               perfectDrawEnabled={false}
               listening={false}
             />
           </Group>
 
-          <Group x={200}
-            y={getFlavorY() + (flavorLine > 1 ? 3 : 3.5) + (isMobile ? (lang == "en" ? 2 : 1.5) : 0) - (lang == "en" ? -0.35 : 3.25)}
+          <Group
+            x={200}
+            y={
+              getFlavorY() + flavorPaddingY
+            }
           >
             <Text
               ref={flavorTextRef}
               text={processedFlavor}
-              fontSize={lang == "en" ? 10 : 16}
-              lineHeight={flavorLine > 1 ? 1.1 - (lang == "en" ? -0.2 : 0.1) : 1}
-              fontFamily={font}
+              fontSize={typography.flavorFontSize}
+              fontFamily={typography.flavorFont}
+              scaleX={typography.flavorScaleX ?? 1}
+              letterSpacing={typography.flavorLetterSpacing ?? 0}   // 플레이버 텍스트 자간 추가
+              lineHeight={
+                            (typography.flavorLineHeight ?? 1)
+                          }
               stroke={isDarkMode ? "white" : "black"}
-              strokeWidth={1}
+              strokeWidth={typography.flavorStrokeWidth ?? 1}       // 플레이버 텍스트 테두리 두께 (한국어판에서 조정)
               lineJoin='round'
               offsetX={textWidth / 2}
               perfectDrawEnabled={false}
@@ -1096,9 +1186,13 @@ export default function CardEditor({
 
             <Text
               text={processedFlavor}
-              fontSize={lang == "en" ? 10 : 16}
-              lineHeight={flavorLine > 1 ? 1.1 - (lang == "en" ? -0.2 : 0.1) : 1}
-              fontFamily={font}
+              fontSize={typography.flavorFontSize}
+              fontFamily={typography.flavorFont}
+              scaleX={typography.flavorScaleX ?? 1}
+              letterSpacing={typography.flavorLetterSpacing ?? 0}   // 플레이버 텍스트 자간 추가
+              lineHeight={
+                            (typography.flavorLineHeight ?? 1)
+                          }
               fill={isDarkMode ? "black" : "white"}
               offsetX={textWidth / 2}
               perfectDrawEnabled={false}
@@ -1108,70 +1202,31 @@ export default function CardEditor({
           </Group>
         </Group>
 
-        {/* Abilities Box */}
-        <Group visible={Boolean(debouncedAbilities && !isEnergy)}>
-          <OverlayFrame
-            visible={!isFullArt}
-            exportScale={isExporting}
-            url={getAssetPath(getBoxPath(boxLine, totalAbilitiesLines, isCrest), '', true)}
-            filters={isDarkMode ? [Konva.Filters.Invert] : []}
-            y={
-              isCrest ? 0 : (isUnit ? 0 : 21.5) - (secondAbilities ? ((boxLine2 * (lang == "en" ? 14.5 : 17)) + 22) : 0)
-            }
-            width={BASE_WIDTH}
-            height={BASE_HEIGHT}
-          />
-
-          {/* Abilities Box Main */}
-          <AbilitiesBox
-            lang={lang}
-            text={debouncedAbilities}
-            lineHeight={lineHeight}
-            fontSize={fontSize}
-            font={font}
-            maxLines={secondAbilities ? firstMaxLines : totalAbilitiesLines}
-            MAX_WIDTH={isCrest ? 271 : 370}
-            ICON_CONFIG={ICON_CONFIG}
-            x={isCrest ? 24 : 15}
-            y={
-              isCrest ? 200 : (isUnit ? 495 : 516.5) - (secondAbilities ? ((boxLine2 * (lang == "en" ? 14.5 : 17)) + 22) : 0) - (lang == "en" ? 0 : 3)
-            }
+        {/* Independent ability windows, in the same order as their UI inputs. */}
+        {abilityLayout.items.map((item) => (
+          <AbilityWindow
+            key={item.block.id}
+            item={item}
+            baseWidth={BASE_WIDTH}
+            baseHeight={BASE_HEIGHT}
+            totalAbilitiesLines={totalAbilitiesLines}
             isCrest={isCrest}
-            onLinesChange={setBoxLine}
-            dark={isDarkMode}
-            fullArt={isFullArt}
+            isDarkMode={isDarkMode}
+            isFullArt={isFullArt}
             isMobile={isMobile}
-          />
-        </Group>
-
-        {/* Abilities Box Secondary*/}
-        <Group visible={Boolean(secondAbilities)}>
-          <OverlayFrame
-            visible={!isFullArt}
-            exportScale={isExporting}
-            url={getAssetPath(getBoxPath(boxLine2, totalAbilitiesLines), '', true)}
-            filters={isDarkMode ? [Konva.Filters.Invert] : []}
-            y={isUnit ? 0 : 21.5}
-            width={BASE_WIDTH}
-            height={BASE_HEIGHT}
-          />
-
-          <AbilitiesBox
-            lang={lang}
-            text={secondAbilities}
-            lineHeight={lineHeight}
-            fontSize={fontSize}
-            font={font}
-            maxLines={secondAbilities ? secondMaxLines : totalAbilitiesLines}
+            isExporting={isExporting}
             ICON_CONFIG={ICON_CONFIG}
-            x={15}
-            y={isUnit ? 495 : 516.5 - (lang == "en" ? 0 : 3)}
-            onLinesChange={setBoxLine2}
-            dark={isDarkMode}
-            fullArt={isFullArt}
-            isMobile={isMobile}
+            font={font}
+            lightFont={lightFont}
+            fontSize={fontSize}
+            lineHeight={lineHeight}
+            bodyLetterSpacing={bodyLetterSpacing}
+            bodyWordSpacing={bodyWordSpacing}
+            bodyYOffset={bodyYOffset}
+            bodyLightYOffset={bodyLightYOffset}
+            onMeasure={recordAbilityMeasurement}
           />
-        </Group>
+        ))}
 
         {/* DIcon */}
         <KonvaImage visible={Boolean(DIcon)} image={DIcon} width={BASE_WIDTH} height={BASE_HEIGHT} listening={false} />
@@ -1195,17 +1250,126 @@ export default function CardEditor({
   );
 }
 
-const OverlayFrame = ({ url, width, height, filters = [], y = 0, exportScale = 0, visible = true }) => {
-  const [img] = useImage(url, 'anonymous');
-  const imageRef = React.useRef(null);
+// The background and body of each window share the same measured row count.
+const AbilityWindow = ({
+  item, baseWidth, baseHeight, totalAbilitiesLines, isCrest, isDarkMode,
+  isFullArt, isMobile, isExporting, ICON_CONFIG, font, lightFont, fontSize,
+  lineHeight, bodyLetterSpacing, bodyWordSpacing, bodyYOffset,
+  bodyLightYOffset, onMeasure,
+}) => {
+  const { block, lineCount } = item;
+  const [backgroundReady, setBackgroundReady] = useState(false);
+  const [backgroundBounds, setBackgroundBounds] = useState(null);
+  const measure = useCallback((metrics) => {
+    onMeasure(block.id, block.text, {
+      ...metrics,
+      hideExplanations: block.hideExplanations === true,
+      backgroundReady: isFullArt || metrics.lineCount === 0 || backgroundReady,
+      backgroundBounds,
+    });
+  }, [block.id, block.text, block.hideExplanations, onMeasure, isFullArt, backgroundReady, backgroundBounds]);
+  const color = getAbilityBackgroundColor(block);
+  return (
+    <Group name="ability-window" id={block.id}>
+      <OverlayFrame
+        visible={!isFullArt}
+        exportScale={isExporting}
+        url={getAssetPath(getBoxPath(lineCount, totalAbilitiesLines, isCrest), "", true)}
+        tint={!color && isDarkMode ? DEFAULT_DARK_ABILITY_TINT : null}
+        solidTint={color}
+        keepImageWhileLoading={true}
+        onImageReadyChange={setBackgroundReady}
+        onImageBoundsChange={setBackgroundBounds}
+        y={item.backgroundY}
+        width={baseWidth}
+        height={baseHeight}
+      />
+      <AbilitiesBox
+        text={block.text}
+        lineHeight={lineHeight}
+        fontSize={fontSize}
+        font={font}
+        lightFont={lightFont}
+        bodyScaleX={typography.bodyScaleX ?? 1}
+        bodyScaleY={typography.bodyScaleY ?? 0.9}
+        letterSpacing={bodyLetterSpacing}
+        bodyWordSpacing={bodyWordSpacing}
+        bodyYOffset={
+          bodyYOffset
+          + (isCrest ? (typography.crestBodyYOffset ?? 0) : 0)
+        }
+        bodyLightYOffset={bodyLightYOffset}
+        bodyJustify={typography.bodyJustify ?? false}
+        maxLines={totalAbilitiesLines}
+        MAX_WIDTH={isCrest ? 271 : 370}
+        ICON_CONFIG={ICON_CONFIG}
+        x={isCrest ? 24 : 15}
+        y={item.textY}
+        isCrest={isCrest}
+        onLayoutChange={measure}
+        dark={isDarkMode}
+        fullArt={isFullArt}
+        useSpTextStyle={block.useSpTextStyle ?? false}
+        hideExplanations={block.hideExplanations ?? false}
+        isMobile={isMobile}
+      />
+    </Group>
+  );
+};
 
-  useEffect(() => {
+const OverlayFrame = ({
+  url,
+  width,
+  height,
+  filters = EMPTY_OVERLAY_FILTERS,
+  tint = null,
+  solidTint = null,
+  y = 0,
+  exportScale = 0,
+  visible = true,
+  keepImageWhileLoading = false,
+  onImageReadyChange = null,
+  onImageBoundsChange = null,
+}) => {
+  const [loadedImg, imageStatus] = useImage(url, 'anonymous');
+  const lastLoadedRef = useRef(null);
+  const previous = lastLoadedRef.current;
+  // Only ability backgrounds opt in. Never retain across a canvas orientation
+  // change, an empty URL or a failed load. Other overlays keep their old rules.
+  const canRetain = keepImageWhileLoading && url && imageStatus === 'loading' &&
+    previous?.width === width && previous?.height === height;
+  const img = loadedImg || (canRetain ? previous.image : null);
+
+  useLayoutEffect(() => {
+    if (loadedImg) {
+      lastLoadedRef.current = { image: loadedImg, width, height };
+    } else if (!url || imageStatus === 'failed') {
+      lastLoadedRef.current = null;
+    }
+    onImageReadyChange?.(Boolean(url && loadedImg && imageStatus === 'loaded'));
+  }, [loadedImg, imageStatus, url, width, height, onImageReadyChange]);
+
+  // Only ability backgrounds request this measurement. The helper caches by
+  // decoded image and dimensions; keystrokes and colour changes do not rescan.
+  useLayoutEffect(() => {
+    if (onImageBoundsChange) {
+      onImageBoundsChange(measureAbilityImageBounds(img, width, height));
+    }
+  }, [img, width, height, onImageBoundsChange]);
+
+  const imageRef = React.useRef(null);
+  const solidFilter = useMemo(() => solidTint
+    ? [(imageData) => tintAbilityImageData(imageData, solidTint)]
+    : null, [solidTint]);
+
+  // Commit the tint cache with the new image before it can be painted unfiltered.
+  useLayoutEffect(() => {
     if (!img || !imageRef.current) return;
 
     const node = imageRef.current;
     node.clearCache();
 
-    if (filters.length > 0 || exportScale > 0) {
+    if (filters.length > 0 || tint || solidFilter || exportScale > 0) {
       node.cache({
         x: 0,
         y: 0,
@@ -1222,7 +1386,7 @@ const OverlayFrame = ({ url, width, height, filters = [], y = 0, exportScale = 0
         }
       }
     }
-  }, [img, filters, exportScale, width, height]);
+  }, [img, filters, tint, solidFilter, exportScale, width, height]);
 
   if (!img || !url) return null;
 
@@ -1232,7 +1396,10 @@ const OverlayFrame = ({ url, width, height, filters = [], y = 0, exportScale = 0
       image={img}
       width={width}
       height={height}
-      filters={filters}
+      filters={solidFilter ?? (tint ? RGB_OVERLAY_FILTERS : filters)}
+      red={tint?.r}
+      green={tint?.g}
+      blue={tint?.b}
       y={y}
       visible={visible}
       perfectDrawEnabled={false}
@@ -1398,3 +1565,4 @@ const GradientOverlayFrame = ({
     />
   );
 };
+export default React.memo(CardEditor);

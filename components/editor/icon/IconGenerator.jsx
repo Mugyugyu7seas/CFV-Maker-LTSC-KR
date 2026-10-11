@@ -2,9 +2,12 @@
 
 import { Group, Image as KonvaImage } from "react-konva";
 import useImage from "use-image";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Konva from "konva";
 import { HYBRID_ICON_CONFIG } from "../../../utils/store/IconConfig";
+import { getKoreanCardIconPath } from "../../../utils/PathHelper";
+import { getAbilityIconAppearance } from "../../../utils/AbilityTextStyle";
+import { useAbilityIconStroke } from "./useAbilityIconStroke";
 
 export default function IconGenerator({
   config,
@@ -15,6 +18,7 @@ export default function IconGenerator({
   fullArt = true
 }) {
   const [hasError, setHasError] = useState(false);
+  const { dark: iconDark } = getAbilityIconAppearance({ dark, spText: fullArt });
   const ext = config.valueExt || ".png";
   const tintColor = config.tintColor;
   const hasTintColor = !!tintColor;
@@ -27,21 +31,25 @@ export default function IconGenerator({
 
   const resolvePath = (path, useStroke = false) => {
     if (!path) return null;
-    let final = path.match(/\.(png|jpg|jpeg|webp)$/i) ? path : `${path}${ext}`;
-    
+
+    let final = path.match(/\.(png|jpg|jpeg|webp)$/i)
+      ? path
+      : `${path}${ext}`;
+
     if (useStroke) {
       final = final.replace(/(\.[a-z]+)$/i, "_s$1");
     }
-    
-    if (dark && HYBRID_ICON_CONFIG?.darkModePaths?.[final]) {
-      return HYBRID_ICON_CONFIG.darkModePaths[final];
+
+    if (iconDark && HYBRID_ICON_CONFIG?.darkModePaths?.[final]) {
+      final = HYBRID_ICON_CONFIG.darkModePaths[final];
     }
-    return final;
+
+    return getKoreanCardIconPath(final);
   };
 
   const baseSrc = !config.useNumberedFiles ? resolvePath(config.baseSrc, false) : null;
   const [baseImg] = useImage(baseSrc);
-  
+
   let baseStrokeSrc = null;
   if (fullArt) {
     if (!config.useNumberedFiles) {
@@ -62,7 +70,7 @@ export default function IconGenerator({
     ? resolvePath(`${config.valueBasePath}${value}`, false)
     : null;
   const [boldImg] = useImage(boldPath);
-  
+
   const boldStrokePath = (!config.useNumberedFiles && config.valueBasePath && value != null && fullArt)
     ? (() => {
         const path = `${config.valueBasePath}${value}`;
@@ -70,9 +78,20 @@ export default function IconGenerator({
       })()
     : null;
   const [boldStrokeImg] = useImage(boldStrokePath ? resolvePath(boldStrokePath, false) : null);
+  const bgPath = (config.valueBgSrc && !config.useNumberedFiles)
+    ? ensureExt(config.valueBgSrc)
+    : null;
+  const bgSrc = bgPath
+    ? (
+        iconDark && HYBRID_ICON_CONFIG?.darkModePaths?.[bgPath]
+          ? HYBRID_ICON_CONFIG.darkModePaths[bgPath]
+          : bgPath
+      )
+    : null;
 
-  const bgPath = (config.valueBgSrc && !config.useNumberedFiles) ? ensureExt(config.valueBgSrc) : null;
-  const [bgImg] = useImage(bgPath ? (dark && HYBRID_ICON_CONFIG?.darkModePaths?.[bgPath] ? HYBRID_ICON_CONFIG.darkModePaths[bgPath] : bgPath) : null);
+  const [bgImg] = useImage(
+    bgSrc ? getKoreanCardIconPath(bgSrc) : null
+  );
 
   const bgStrokePath = bgPath && fullArt ? (() => {
     if (bgPath.match(/\.(png|jpg|jpeg|webp)$/i)) {
@@ -125,34 +144,10 @@ export default function IconGenerator({
     }
   }, [allImagesLoaded, targetHeight, onWidthReady, baseImg, bgImg, mainImg, hasTintColor]);
 
-  useLayoutEffect(() => {
-    const nodes = [baseStrokeRef.current, valueStrokeRef.current, bgStrokeRef.current];
-    let layerToRedraw = null;
-
-    nodes.forEach(node => {
-      if (!node) return;
-      try {
-        node.clearCache();
-        node.filters([Konva.Filters.RGBA]);
-        const c = dark ? { r: 0, g: 0, b: 0 } : { r: 255, g: 255, b: 255 };
-        node.red(c.r);
-        node.green(c.g);
-        node.blue(c.b);
-        node.alpha(1);
-        node.cache();
-
-        if (!layerToRedraw) {
-          layerToRedraw = node.getLayer();
-        }
-      } catch (e) {
-        setHasError(true);
-      }
-    });
-
-    if (layerToRedraw) {
-      layerToRedraw.batchDraw();
-    }
-  }, [baseStrokeImg, boldStrokeImg, bgStrokeImg, dark, fullArt]);
+  const strokeReady = allImagesLoaded && !hasError;
+  useAbilityIconStroke(baseStrokeRef, baseStrokeImg, fullArt, strokeReady);
+  useAbilityIconStroke(valueStrokeRef, boldStrokeImg, fullArt, strokeReady);
+  useAbilityIconStroke(bgStrokeRef, bgStrokeImg, fullArt, strokeReady);
 
   if (!allImagesLoaded || hasError) return null;
 
@@ -195,7 +190,7 @@ export default function IconGenerator({
               />
             </>
           )}
-          
+
           {fullArt && bgStrokeImg && (
             <KonvaImage
               ref={bgStrokeRef}
@@ -224,7 +219,7 @@ export default function IconGenerator({
             blue={tintColor?.blue || 1}
             listening={false}
           />
-          
+
           {fullArt && showBaseStroke && (
             <KonvaImage
               ref={baseStrokeRef}
@@ -242,7 +237,7 @@ export default function IconGenerator({
             <KonvaImage
               ref={valueStrokeRef}
               image={boldStrokeImg}
-              x={startX + (mainImg.width * mainScale) / 2}
+              x={startX + (bgImg.width * bgScale) / 2}
               y={(mainImg.height * mainScale) / 2}
               offsetX={boldStrokeImg.width / 2}
               offsetY={boldStrokeImg.height / 2}
@@ -251,17 +246,17 @@ export default function IconGenerator({
               listening={false}
             />
           )}
-          <KonvaImage
-            ref={mainRef}
-            image={mainImg}
-            x={startX + (mainImg.width * mainScale) / 2}
-            y={(mainImg.height * mainScale) / 2}
-            offsetX={mainImg.width / 2}
-            offsetY={mainImg.height / 2}
-            scaleX={mainScale}
-            scaleY={mainScale}
-            listening={false}
-          />
+            <KonvaImage
+              ref={mainRef}
+              image={mainImg}
+              x={startX + (bgImg.width * bgScale) / 2}
+              y={(mainImg.height * mainScale) / 2}
+              offsetX={mainImg.width / 2}
+              offsetY={mainImg.height / 2}
+              scaleX={mainScale}
+              scaleY={mainScale}
+              listening={false}
+            />
         </>
       );
     }
@@ -297,7 +292,7 @@ export default function IconGenerator({
               />
             </>
           )}
-          
+
           {/* Main + Stroke */}
           {fullArt && showBaseStroke && (
             <KonvaImage

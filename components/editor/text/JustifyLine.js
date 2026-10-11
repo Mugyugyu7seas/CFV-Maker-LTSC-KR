@@ -1,4 +1,4 @@
-const segmenter = new Intl.Segmenter(['th', 'ja'], { granularity: 'word' });
+const segmenter = new Intl.Segmenter("ko", { granularity: 'word' });
 
 export function JustifyLine(line, maxWidth, fontSize, measureTextFn) {
   if (line.length === 0) return line;
@@ -7,7 +7,7 @@ export function JustifyLine(line, maxWidth, fontSize, measureTextFn) {
   for (const node of line) {
     if (node.type === "text" && !/^\s+$/.test(node.text)) {
       const segments = Array.from(segmenter.segment(node.text)).map(s => s.segment);
-      
+
       if (segments.length > 1 && measureTextFn) {
         segments.forEach(word => {
           processedLine.push({
@@ -28,7 +28,7 @@ export function JustifyLine(line, maxWidth, fontSize, measureTextFn) {
 
   const totalWidth = processedLine.reduce((acc, n) => acc + (n.width || 0), 0);
   const spaceNodes = processedLine.filter(n => n.type === "text" && /^\s+$/.test(n.text));
-  
+
   if (totalWidth >= maxWidth) return processedLine;
 
   const diff = maxWidth - totalWidth;
@@ -36,11 +36,11 @@ export function JustifyLine(line, maxWidth, fontSize, measureTextFn) {
 
   if (spaceNodes.length > 0) {
     const extraPerSpace = diff / spaceNodes.length;
-    
+
     return processedLine.map((node) => {
       const isSpace = node.type === "text" && /^\s+$/.test(node.text);
       const finalWidth = isSpace ? node.width + extraPerSpace : node.width;
-      
+
       const newNode = {
         ...node,
         x: currentX,
@@ -58,7 +58,7 @@ export function JustifyLine(line, maxWidth, fontSize, measureTextFn) {
 
   return processedLine.map((node, index) => {
     const gapWidth = (index < gapsCount) ? extraPerGap : 0;
-    
+
     const newNode = {
       ...node,
       x: currentX,

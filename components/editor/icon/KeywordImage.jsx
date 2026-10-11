@@ -4,6 +4,9 @@ import { Group, Image as KonvaImage } from "react-konva";
 import useImage from "use-image";
 import { useEffect, useLayoutEffect, useRef, useMemo, useState } from "react";
 import Konva from "konva";
+import { getKoreanCardIconPath } from "../../../utils/PathHelper";
+import { getAbilityIconAppearance } from "../../../utils/AbilityTextStyle";
+import { useAbilityIconStroke } from "./useAbilityIconStroke";
 import {
   HYBRID_ICON_CONFIG,
   useIconConfig,
@@ -25,13 +28,20 @@ export default function KeywordImage({
   const strokeRef = useRef();
   const [hasError, setHasError] = useState(false);
 
+  const { dark: iconDark } = getAbilityIconAppearance({ dark, spText: fullArt });
+
   const ICON_CONFIG = useIconConfig();
   const COLOR_TAG = useColorTag();
 
   const [cleanSrc, presetName] = useMemo(() => {
     if (!src) return [null, null];
+
     const parts = src.split("@");
-    return [parts[0], parts[1] || null];
+
+    return [
+      parts[0],
+      parts[1] || null
+    ];
   }, [src]);
 
   const lookupKey = useMemo(() => {
@@ -39,11 +49,11 @@ export default function KeywordImage({
     return Object.keys(ICON_CONFIG.exact).find(
       (k) => ICON_CONFIG.exact[k].src === cleanSrc
     );
-  }, [cleanSrc]);
+  }, [cleanSrc, ICON_CONFIG]);
 
   const { finalSrc, finalStrokeSrc, tint, invert } = useMemo(() => {
     const config = HYBRID_ICON_CONFIG?.icons?.[cleanSrc];
-    const mode = dark ? config?.dark : config?.light;
+    const mode = iconDark ? config?.dark : config?.light;
 
     let resSrc = cleanSrc;
     let resStrokeSrc = null;
@@ -56,8 +66,8 @@ export default function KeywordImage({
       const exclusive = HYBRID_ICON_CONFIG?.exclusivePaths?.[exclusiveKey];
       if (exclusive) {
         return {
-          finalSrc: exclusive.src,
-          finalStrokeSrc: exclusive.strokeSrc || null,
+          finalSrc: getKoreanCardIconPath(exclusive.src),
+          finalStrokeSrc: exclusive.strokeSrc ? getKoreanCardIconPath(exclusive.strokeSrc) : null,
           tint: null,
           invert: false
         };
@@ -72,7 +82,7 @@ export default function KeywordImage({
       if (preset) {
         resTint =
           preset.dark || preset.light
-            ? dark
+            ? iconDark
               ? preset.dark
               : preset.light
             : preset;
@@ -83,8 +93,15 @@ export default function KeywordImage({
       else if (mode.type === "invert") resInvert = true;
     }
 
-    return { finalSrc: resSrc, finalStrokeSrc: resStrokeSrc, tint: resTint, invert: resInvert };
-  }, [cleanSrc, presetName, lookupKey, dark]);
+    return {
+      finalSrc: getKoreanCardIconPath(resSrc),
+      finalStrokeSrc: resStrokeSrc
+        ? getKoreanCardIconPath(resStrokeSrc)
+        : null,
+      tint: resTint,
+      invert: resInvert
+    };
+  }, [cleanSrc, presetName, lookupKey, iconDark, COLOR_TAG]);
 
   const strokeSrc = useMemo(() => {
     if (finalStrokeSrc) return finalStrokeSrc;
@@ -104,64 +121,32 @@ export default function KeywordImage({
     }
   }, [baseImg, onSizeLoaded, targetHeight]);
 
+  useAbilityIconStroke(strokeRef, strokeImg, fullArt, Boolean(baseImg && !hasError));
+
+  // Apply/remove the foreground filter before paint. No queued RAF from an
+  // older mode can reapply a black/inverted filter after a fast SP toggle.
   useLayoutEffect(() => {
-    const node = strokeRef.current;
-    if (!node || !strokeImg || !fullArt) return;
-
-    try {
-      node.clearCache();
-      node.filters([Konva.Filters.RGBA]);
-      const c = dark ? { r: 0, g: 0, b: 0 } : { r: 255, g: 255, b: 255 };
-      node.red(c.r);
-      node.green(c.g);
-      node.blue(c.b);
-      node.alpha(1);
-      node.cache();
-
-      const layer = node.getLayer();
-      if (layer) layer.batchDraw();
-    } catch (e) {
-      setHasError(true);
-    }
-  }, [strokeImg, dark, fullArt]);
-
-  useEffect(() => {
     const node = baseRef.current;
-    if (!node || !baseImg) return;
+    if (!node || !baseImg || hasError) return;
 
     try {
-      const apply = () => {
-        if (!node || !node.cache) return;
-        const filters = [];
+      const filters = [];
+      if (tint) filters.push(Konva.Filters.RGB);
+      if (invert) filters.push(Konva.Filters.Invert);
 
-        if (tint) filters.push(Konva.Filters.RGB);
-        if (invert) filters.push(Konva.Filters.Invert);
-
-        node.cache();
-        node.filters(filters);
-
-        if (tint) {
-          node.red(tint.red);
-          node.green(tint.green);
-          node.blue(tint.blue);
-        }
-      };
-
-      const tryApply = (retry = 3) => {
-        try {
-          const r = node.getClientRect({ skipTransform: true });
-          if (r.width && r.height) return apply();
-          if (retry > 0) requestAnimationFrame(() => tryApply(retry - 1));
-        } catch (e) {
-          setHasError(true);
-        }
-      };
-
-      requestAnimationFrame(() => tryApply());
-    } catch (e) {
-      setHasError(true);
+      node.clearCache();
+      node.filters(filters);
+      if (tint) {
+        node.red(tint.red);
+        node.green(tint.green);
+        node.blue(tint.blue);
+      }
+      if (filters.length > 0) node.cache();
+      node.getLayer()?.batchDraw();
+    } catch (error) {
+      console.warn("[CFV] Could not apply the icon color", error);
     }
-  }, [baseImg, tint, invert]);
+  }, [baseImg, tint, invert, hasError]);
 
   if (!baseImg || hasError) return null;
 

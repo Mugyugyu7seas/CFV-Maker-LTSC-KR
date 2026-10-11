@@ -1,6 +1,6 @@
 {
   "name": "cfv-maker-ltsc",
-  "version": "1.2.7",
+  "version": "1.2.7-K0",
   "private": true,
   "main": "main.js",
   "scripts": {

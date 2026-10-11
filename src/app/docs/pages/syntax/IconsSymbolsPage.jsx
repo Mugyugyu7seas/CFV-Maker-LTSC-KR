@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useLang } from "../../../../../utils/LanguageProvider";
+
 import { TextPreset } from "../../../../../utils/store/Text";
 import SyntaxGrid from "../../components/SyntaxLoader";
 import { KEYWORDS } from "../../components/SyntaxLoader";
@@ -11,7 +11,7 @@ import SyntaxSidebar from "../../components/SyntaxNavigator";
 import { IconSymbolIcon } from "../../../../../components/Icon";
 
 export default function IconsSymbolsPage() {
-  const { lang } = useLang();
+
   const t = TextPreset.IconsSymbolsPage;
   const { theme } = useTheme();
   const isDarkTheme = theme === 'dark';
@@ -46,21 +46,21 @@ export default function IconsSymbolsPage() {
   ];
 
   const costItems = [
-    { code: "COST", desc: t.descCost[lang], iconSrc: KEYWORDS["COST"], dark: isDarkTheme, iconSize: 20, iconOffsetY: -1 },
-    { code: "CB", desc: t.descCb[lang], iconSrc: KEYWORDS["CB"], iconSize: 20 },
-    { code: "CC", desc: t.descCc[lang], iconSrc: KEYWORDS["CC"], iconSize: 20 },
-    { code: "SB", desc: t.descSb[lang], iconSrc: KEYWORDS["SB"], iconSize: 20 },
-    { code: "SC", desc: t.descSc[lang], iconSrc: KEYWORDS["SC"], iconSize: 20 },
-    { code: "EB", desc: t.descEb[lang], iconSrc: KEYWORDS["EB"], iconSize: 20 },
-    { code: "EC", desc: t.descEc[lang], iconSrc: KEYWORDS["EC"], iconSize: 20 },
+    { code: "COST", desc: t.descCost, iconSrc: KEYWORDS["COST"], dark: isDarkTheme, iconSize: 20, iconOffsetY: -1 },
+    { code: "CB", desc: t.descCb, iconSrc: KEYWORDS["CB"], iconSize: 20 },
+    { code: "CC", desc: t.descCc, iconSrc: KEYWORDS["CC"], iconSize: 20 },
+    { code: "SB", desc: t.descSb, iconSrc: KEYWORDS["SB"], iconSize: 20 },
+    { code: "SC", desc: t.descSc, iconSrc: KEYWORDS["SC"], iconSize: 20 },
+    { code: "EB", desc: t.descEb, iconSrc: KEYWORDS["EB"], iconSize: 20 },
+    { code: "EC", desc: t.descEc, iconSrc: KEYWORDS["EC"], iconSize: 20 },
   ];
 
   const effectItems = [
-    { code: "POWER", desc: t.descPower[lang], iconSrc: KEYWORDS["POWER"], iconSize: 20, dark: isDarkTheme },
-    { code: "SHIELD", desc: t.descShield[lang], iconSrc: KEYWORDS["SHIELD"], iconSize: 20, dark: isDarkTheme },
-    { code: "CRITICAL", desc: t.descCritical[lang], iconSrc: KEYWORDS["CRITICAL"], iconSize: 20, dark: isDarkTheme },
-    { code: "REST", desc: t.descRest[lang], iconSrc: KEYWORDS["REST"], iconSize: 20 },
-    { code: "STAND", desc: t.descStand[lang], iconSrc: KEYWORDS["STAND"], iconSize: 20 },
+    { code: "POWER", desc: t.descPower, iconSrc: KEYWORDS["POWER"], iconSize: 20, dark: isDarkTheme },
+    { code: "SHIELD", desc: t.descShield, iconSrc: KEYWORDS["SHIELD"], iconSize: 20, dark: isDarkTheme },
+    { code: "CRITICAL", desc: t.descCritical, iconSrc: KEYWORDS["CRITICAL"], iconSize: 20, dark: isDarkTheme },
+    { code: "REST", desc: t.descRest, iconSrc: KEYWORDS["REST"], iconSize: 20 },
+    { code: "STAND", desc: t.descStand, iconSrc: KEYWORDS["STAND"], iconSize: 20 },
   ];
 
   const triggerItems = [
@@ -72,8 +72,8 @@ export default function IconsSymbolsPage() {
   ];
 
   const otherItems = [
-    { code: "GB", desc: t.descGb[lang], iconSrc: KEYWORDS["GB(1)"], iconSize: 19, iconOffsetY: -1 },
-    { code: "LB", desc: t.descLb[lang], iconSrc: KEYWORDS["LB(3)"], iconSize: 19, iconOffsetY: -1 },
+    { code: "GB", desc: t.descGb, iconSrc: KEYWORDS["GB(1)"], iconSize: 19, iconOffsetY: -1 },
+    { code: "LB", desc: t.descLb, iconSrc: KEYWORDS["LB(3)"], iconSize: 19, iconOffsetY: -1 },
   ];
 
   const varaintsItems = [
@@ -130,7 +130,7 @@ export default function IconsSymbolsPage() {
       <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
         <h1 className="flex text-xl items-center gap-2 font-semibold mb-4 pb-1.5 border-b border-(--border-color)">
           <IconSymbolIcon size={24} />
-          {t.IconsSymbols[lang]}
+          {t.IconsSymbols}
         </h1>
         <section id="ability-icons" className="mb-10 scroll-mt-20">
           <h2 className="text-xl font-semibold mb-4">Ability Icons</h2>
@@ -161,7 +161,7 @@ export default function IconsSymbolsPage() {
           <h2 className="text-xl font-semibold mb-4">Other Icons</h2>
           <SyntaxGrid items={otherItems} columns={3} />
         </section>
-        
+
         <section id="varaints" className="mb-8 scroll-mt-20">
           <h2 className="text-xl font-semibold mb-4">Variants</h2>
           <SyntaxGrid items={varaintsItems} columns={3} />

@@ -13,43 +13,73 @@ let cachedVersion = -1;
 
 export const ICON_CONFIG_BASE = {
   exact: {
-    AUTO: { src: "/assets/icon/AUTO.png", iconHeight: 11 },
-    ACT: { src: "/assets/icon/ACT.png", iconHeight: 11 },
-    CONT: { src: "/assets/icon/CONT.png", iconHeight: 11 },
-    "1/Turn": { src: "/assets/icon/1PT.png", iconHeight: 11 },
-    "1/Fight": { src: "/assets/icon/1PF.png", iconHeight: 11 },
-    COST: { src: "/assets/icon/COST.png", iconHeight: 14 },
-    "{": { src: "/assets/icon/[.png", iconHeight: 10.5 },
-    "}": { src: "/assets/icon/].png", iconHeight: 10.5 },
+    AUTO: { src: "/assets/ko/icon/AUTO.png", iconHeight: 11
+      ,iconSpacingBefore: 0
+      },
+    ACT: { src: "/assets/ko/icon/ACT.png", iconHeight: 11
+        ,iconSpacingBefore: 0
+      },
+    CONT: { src: "/assets/ko/icon/CONT.png", iconHeight: 11
+        ,iconSpacingBefore: 0
+      },
+    "1/Turn": { src: "/assets/ko/icon/1PT.png", iconHeight: 11
+        ,iconSpacingBefore: 0
+      },
+    "1/Fight": { src: "/assets/ko/icon/1PF.png", iconHeight: 11
+        ,iconSpacingBefore: 0
+      },
+    COST: { src: "/assets/ko/icon/COST.png", iconHeight: 14
+        ,iconSpacingBefore: 2
+        ,iconSpacingAfter: 2
+      },
+    "{": { src: "/assets/ko/icon/[.png", iconHeight: 11
+        ,iconSpacingBefore: 0
+      },
+    "}": { src: "/assets/ko/icon/].png", iconHeight: 11
+      },
+    POWER: { src: "/assets/ko/icon/PW.png", iconHeight: 13 },
+    CRITICAL: { src: "/assets/ko/icon/CR.png", iconHeight: 13 },
+    SHIELD: { src: "/assets/ko/icon/SH.png", iconHeight: 13 },
+    STAND: { src: "/assets/ko/icon/STAND.png", iconHeight: 12
+      ,iconSpacingBefore: 0
+      ,iconSpacingAfter: 0
+      },
+    REST: { src: "/assets/ko/icon/REST.png", iconHeight: 12
+      ,iconSpacingBefore: 0
+      ,iconSpacingAfter: 0
+      },
 
-    POWER: { src: "/assets/icon/PW.png", iconHeight: 13 },
-    CRITICAL: { src: "/assets/icon/CR.png", iconHeight: 13 },
-    SHIELD: { src: "/assets/icon/SH.png", iconHeight: 13 },
-    STAND: { src: "/assets/icon/STAND.png", iconHeight: 12 },
-    REST: { src: "/assets/icon/REST.png", iconHeight: 12 },
+    VC: { src: "/assets/ko/icon/circle/VC.png", iconHeight: 16
+      ,iconSpacingBefore: 0
+      ,iconSpacingAfter: 0
+    },
+    RC: { src: "/assets/ko/icon/circle/RC.png", iconHeight: 16
+      ,iconSpacingBefore: 0
+      ,iconSpacingAfter: 0
+    },
+    GC: { src: "/assets/ko/icon/circle/GC.png", iconHeight: 16
+      ,iconSpacingBefore: 0
+      ,iconSpacingAfter: 0
+    },
 
-    VC: { src: "/assets/icon/circle/VC.png", iconHeight: 16 },
-    RC: { src: "/assets/icon/circle/RC.png", iconHeight: 16 },
-    GC: { src: "/assets/icon/circle/GC.png", iconHeight: 16 },
+    "[Over Trigger]": { src: "/assets/ko/icon/trigger/Icon_OV.png", iconHeight: 12, iconYOffset: -0.5 },
+    "[Critical Trigger]": { src: "/assets/ko/icon/trigger/Icon_CR.png", iconHeight: 13, iconYOffset: -0.5 },
+    "[Draw Trigger]": { src: "/assets/ko/icon/trigger/Icon_DR.png", iconHeight: 12, iconYOffset: -0.5 },
+    "[Front Trigger]": { src: "/assets/ko/icon/trigger/Icon_FT.png", iconHeight: 12, iconYOffset: -0.5 },
+    "[Heal Trigger]": { src: "/assets/ko/icon/trigger/Icon_HE.png", iconHeight: 12, iconYOffset: -0.5 },
 
-    "[Over Trigger]": { src: "/assets/icon/trigger/Icon_OV.png", iconHeight: 12, iconYOffset: -0.5 },
-    "[Critical Trigger]": { src: "/assets/icon/trigger/Icon_CR.png", iconHeight: 13, iconYOffset: -0.5 },
-    "[Draw Trigger]": { src: "/assets/icon/trigger/Icon_DR.png", iconHeight: 12, iconYOffset: -0.5 },
-    "[Front Trigger]": { src: "/assets/icon/trigger/Icon_FT.png", iconHeight: 12, iconYOffset: -0.5 },
-    "[Heal Trigger]": { src: "/assets/icon/trigger/Icon_HE.png", iconHeight: 12, iconYOffset: -0.5 },
-
-    "[Divine Skill]": { src: "/assets/icon/keyword/DVS.png", iconHeight: 21, iconYOffset: 1.5 },
-    "[Regalis Piece]": { src: "/assets/icon/keyword/RGP.png", iconHeight: 15, iconYOffset: -1.5 },
-    "[Glitter]": { src: "/assets/icon/keyword/GLT.png", iconHeight: 15 },
-    "[Stride]": { src: "/assets/icon/keyword/STG.png", iconHeight: 15, iconYOffset: -1.5 },
-    "[Ultimate Stride]": { src: "/assets/icon/keyword/UST.png", iconHeight: 18 },
+    "[Divine Skill]": { src: "/assets/ko/icon/keyword/DVS.png", iconHeight: 21, iconYOffset: 1.5 },
+    "[Regalis Piece]": { src: "/assets/ko/icon/keyword/RGP.png", iconHeight: 15, iconYOffset: -1.5 },
+    "[Glitter]": { src: "/assets/ko/icon/keyword/GLT.png", iconHeight: 15 },
+    "[Stride]": { src: "/assets/ko/icon/keyword/STG.png", iconHeight: 15, iconYOffset: -1.5 },
+    "[Ultimate Stride]": { src: "/assets/ko/icon/keyword/UST.png", iconHeight: 18 },
   },
 
   prefixes: {
     CB: {
-      baseSrc: "/assets/icon/cost/CB.png",
-      valueBasePath: "/assets/icon/cost/value/",
-      valueBgSrc: "/assets/icon/cost/value/bg.png",
+      baseSrc: "/assets/ko/icon/cost/CB.png",
+      valueBasePath: "/assets/ko/icon/cost/value/",
+      valueBgSrc: "/assets/ko/icon/cost/value/bg.png",
       ext: ".png",
       valueRange: { min: 1, max: 5 },
       iconHeight: 12,
@@ -60,13 +90,17 @@ export const ICON_CONFIG_BASE = {
         green: 50,
         blue: 108
       },
-      iconYOffset: -0.5
+      iconYOffset: 0
+      ,iconSpacingBefore: 0,
+      iconSpacingAfter: 0           /*
+      ,iconSpacingBefore: 0,
+      iconSpacingAfter: 0       아이콘 전후 여백조절. 미설정시 1로 적용 */
     },
 
     CC: {
-      baseSrc: "/assets/icon/cost/CC.png",
-      valueBasePath: "/assets/icon/cost/value/",
-      valueBgSrc: "/assets/icon/cost/value/bg.png",
+      baseSrc: "/assets/ko/icon/cost/CC.png",
+      valueBasePath: "/assets/ko/icon/cost/value/",
+      valueBgSrc: "/assets/ko/icon/cost/value/bg.png",
       ext: ".png",
       valueRange: { min: 1, max: 5 },
       iconHeight: 12,
@@ -78,12 +112,14 @@ export const ICON_CONFIG_BASE = {
         blue: 108
       },
       iconYOffset: -0.5
+      ,iconSpacingBefore: 0,
+      iconSpacingAfter: 0
     },
 
     SB: {
-      baseSrc: "/assets/icon/cost/SB.png",
-      valueBasePath: "/assets/icon/cost/value/",
-      valueBgSrc: "/assets/icon/cost/value/bg.png",
+      baseSrc: "/assets/ko/icon/cost/SB.png",
+      valueBasePath: "/assets/ko/icon/cost/value/",
+      valueBgSrc: "/assets/ko/icon/cost/value/bg.png",
       ext: ".png",
       valueRange: { min: 1, max: 10 },
       iconHeight: 12,
@@ -95,12 +131,14 @@ export const ICON_CONFIG_BASE = {
         blue: 36
       },
       iconYOffset: -0.5
+      ,iconSpacingBefore: 0,
+      iconSpacingAfter: 0
     },
 
     SC: {
-      baseSrc: "/assets/icon/cost/SC.png",
-      valueBasePath: "/assets/icon/cost/value/",
-      valueBgSrc: "/assets/icon/cost/value/bg.png",
+      baseSrc: "/assets/ko/icon/cost/SC.png",
+      valueBasePath: "/assets/ko/icon/cost/value/",
+      valueBgSrc: "/assets/ko/icon/cost/value/bg.png",
       ext: ".png",
       valueRange: { min: 1, max: 10 },
       iconHeight: 12,
@@ -112,12 +150,14 @@ export const ICON_CONFIG_BASE = {
         blue: 36
       },
       iconYOffset: -0.5
+      ,iconSpacingBefore: 0,
+      iconSpacingAfter: 0
     },
 
     EB: {
-      baseSrc: "/assets/icon/cost/EB.png",
-      valueBasePath: "/assets/icon/cost/value/",
-      valueBgSrc: "/assets/icon/cost/value/bg.png",
+      baseSrc: "/assets/ko/icon/cost/EB.png",
+      valueBasePath: "/assets/ko/icon/cost/value/",
+      valueBgSrc: "/assets/ko/icon/cost/value/bg.png",
       ext: ".png",
       valueRange: { min: 1, max: 10 },
       iconHeight: 12,
@@ -129,12 +169,14 @@ export const ICON_CONFIG_BASE = {
         blue: 67
       },
       iconYOffset: -0.5
+      ,iconSpacingBefore: 0,
+      iconSpacingAfter: 0
     },
 
     EC: {
-      baseSrc: "/assets/icon/cost/EC.png",
-      valueBasePath: "/assets/icon/cost/value/",
-      valueBgSrc: "/assets/icon/cost/value/bg.png",
+      baseSrc: "/assets/ko/icon/cost/EC.png",
+      valueBasePath: "/assets/ko/icon/cost/value/",
+      valueBgSrc: "/assets/ko/icon/cost/value/bg.png",
       ext: ".png",
       valueRange: { min: 1, max: 10 },
       iconHeight: 12,
@@ -146,9 +188,11 @@ export const ICON_CONFIG_BASE = {
         blue: 67
       },
       iconYOffset: -0.5
+      ,iconSpacingBefore: 0,
+      iconSpacingAfter: 0
     },
     GB: {
-      baseSrc: "/assets/icon/cost/GB/GB",
+      baseSrc: "/assets/ko/icon/cost/GB/GB",
       ext: ".png",
       useNumberedFiles: true,
       valueRange: { min: 1, max: 8 },
@@ -157,7 +201,7 @@ export const ICON_CONFIG_BASE = {
       allowPlain: false,
     },
     LB: {
-      baseSrc: "/assets/icon/cost/LB/LB",
+      baseSrc: "/assets/ko/icon/cost/LB/LB",
       ext: ".png",
       useNumberedFiles: true,
       valueRange: { min: 3, max: 5 },
@@ -188,41 +232,41 @@ export const COLOR_TAG_BASE = {
 
 export const HYBRID_ICON_CONFIG = {
   icons: {
-    "/assets/icon/COST.png": {
+    "/assets/ko/icon/COST.png": {
       light: {
         type: "path",
-        value: "/assets/icon/COST.png",
+        value: "/assets/ko/icon/COST.png",
       },
       dark: {
         type: "path",
-        value: "/assets/icon/COST_white.png",
+        value: "/assets/ko/icon/COST.png", // 해후 틀도 코스트 검정색 그대로던데 영어판은 다른지 모르겠음.
       },
     },
 
-    "/assets/icon/[.png": {
+    "/assets/ko/icon/[.png": {
       dark: {
         type: "path",
-        value: "/assets/icon/[.png",
-      },
-      light: {
-        type: "invert",
-      },
-    },
-
-    "/assets/icon/].png": {
-      dark: {
-        type: "path",
-        value: "/assets/icon/].png",
+        value: "/assets/ko/icon/[.png",
       },
       light: {
         type: "invert",
       },
     },
 
-    "/assets/icon/PW.png": {
+    "/assets/ko/icon/].png": {
       dark: {
         type: "path",
-        value: "/assets/icon/PW.png",
+        value: "/assets/ko/icon/].png",
+      },
+      light: {
+        type: "invert",
+      },
+    },
+
+    "/assets/ko/icon/PW.png": {
+      dark: {
+        type: "path",
+        value: "/assets/ko/icon/PW.png",
       },
       light: {
         type: "tint",
@@ -234,10 +278,10 @@ export const HYBRID_ICON_CONFIG = {
       },
     },
 
-    "/assets/icon/SH.png": {
+    "/assets/ko/icon/SH.png": {
       dark: {
         type: "path",
-        value: "/assets/icon/SH.png",
+        value: "/assets/ko/icon/SH.png",
       },
       light: {
         type: "tint",
@@ -249,10 +293,10 @@ export const HYBRID_ICON_CONFIG = {
       },
     },
 
-    "/assets/icon/CR.png": {
+    "/assets/ko/icon/CR.png": {
       dark: {
         type: "path",
-        value: "/assets/icon/CR.png",
+        value: "/assets/ko/icon/CR.png",
       },
       light: {
         type: "tint",
@@ -271,9 +315,9 @@ export const HYBRID_ICON_CONFIG = {
   // When matched, the exclusive src is used directly — no tint applied.
   // strokeSrc (optional) overrides the auto-derived stroke path.
   exclusivePaths: {
-    "/assets/icon/COST.png@red": {
-      src: "/assets/icon/COST_red.png",
-      strokeSrc: "/assets/icon/COST_s.png",
+    "/assets/ko/icon/COST.png@red": {
+      src: "/assets/ko/icon/COST_red.png",
+      strokeSrc: "/assets/ko/icon/COST_s.png",
     },
   },
 };

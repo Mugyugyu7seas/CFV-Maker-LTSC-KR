@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
-import { useLang } from '../utils/LanguageProvider';
+
 
 export default function DropdownMenu({
   trigger,
@@ -9,7 +9,7 @@ export default function DropdownMenu({
   size = "md",
   submenuPosition = "left"
 }) {
-  const { lang } = useLang()
+
 
   const [isOpen, setIsOpen] = useState(false);
   const [openSubmenu, setOpenSubmenu] = useState(null);
@@ -201,7 +201,7 @@ export default function DropdownMenu({
             return (
               <React.Fragment key={sectionName}>
                 {sectionName !== 'default' && (
-                  <div className={`px-3 py-1.5 ${lang == "en" ? "text-[10px]" : "text-[12px]"} font-bold uppercase tracking-widest text-(--text-secondary) bg-(--bg-primary)/30`}>
+                  <div className={`px-3 py-1.5 ${"text-[10px]"} font-bold uppercase tracking-widest text-(--text-secondary) bg-(--bg-primary)/30`}>
                     {sectionName}
                   </div>
                 )}

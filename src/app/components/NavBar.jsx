@@ -1,3 +1,5 @@
+// CFV ride-deck explanations control v1
+// CFV hide-explanations and SEC UI v1
 "use client"
 
 import Link from 'next/link';
@@ -8,7 +10,7 @@ import React, {
 } from 'react';
 
 import { useTheme } from '../../../utils/ThemeProvider';
-import { useLang } from '../../../utils/LanguageProvider';
+
 import { useCardState } from '../../../utils/store/State';
 import { useIconConfig } from '../../../utils/store/IconConfig';
 
@@ -36,7 +38,7 @@ const version = process.env.TEMPLATE_VERSION;
 
 export default function NavBar() {
     const { theme, toggleTheme } = useTheme();
-    const { lang, setLang, cardLang, setCardLang } = useLang();
+
 
     const t = TextPreset.EditNav;
 
@@ -71,16 +73,39 @@ export default function NavBar() {
     const handleUpload = (e) => {
         if (state.isLocked) return;
 
-        const file = e.target.files[0];
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-        if (file && file.type.startsWith('image/')) {
-            if (state.imageSrc) {
-                URL.revokeObjectURL(state.imageSrc);
-            }
+        const fileName = file.name.toLowerCase();
 
-            setMultiple({
-                imageSrc: URL.createObjectURL(file),
-            });
+        const isImage =
+            file.type.startsWith("image/") ||
+            fileName.endsWith(".png") ||
+            fileName.endsWith(".jpg") ||
+            fileName.endsWith(".jpeg") ||
+            fileName.endsWith(".webp");
+
+        if (!isImage) {
+            e.target.value = "";
+            return;
+        }
+
+        const oldUrl = state.imageSrc;
+        const newUrl = URL.createObjectURL(file);
+
+        setMultiple({
+            imageSrc: newUrl,
+            imageConfig: {
+            scale: 1,
+            x: 0,
+            y: 0,
+            },
+        });
+
+        if (oldUrl?.startsWith("blob:")) {
+            setTimeout(() => {
+            URL.revokeObjectURL(oldUrl);
+            }, 0);
         }
 
         e.target.value = "";
@@ -117,13 +142,20 @@ export default function NavBar() {
             illust: state.illust,
             flavor: state.flavor,
             abilities: state.abilities,
+            abilityBlocks: state.abilityBlocks,
+            abilityBlocksVersion: 1,
+            abilitySpacingAdjust:
+                state.abilitySpacingAdjust ?? 0,
             grade: state.grade,
+            gradeNumberStyle: state.gradeNumberStyle,
             power: state.power,
             raceText: state.raceText,
             raceCheck: state.raceCheck,
             shield: state.shield,
             shieldCheck: state.shieldCheck,
             isFullArt: state.isFullArt,
+            isSec: state.isSec ?? false,
+            rideDeckHideExplanations: state.rideDeckHideExplanations ?? false,
             showGlobe: state.showGlobe,
             showClan: state.showClan,
             baseColorTint: state.baseColorTint,
@@ -132,21 +164,21 @@ export default function NavBar() {
             customNationName: state.customNationName,
             cardNameGradient: state.cardNameGradient,
             nationGradient: state.nationGradient,
-            lang,
+
         };
 
         const result = await exportCardToZip(
             cardData,
             state.imageSrc,
             state.imageConfig,
-            state.selectedType == "base_ticket.png" ? `${TextPreset.Extra.Energy[lang]}${state.illust ? ` by ${state.illust}` : ""}`
-                : state.selectedType == "base_crest.png/ride_deck" ? `${TextPreset.Extra.Generator[lang]}${state.illust ? ` by ${state.illust}` : ""}`
+            state.selectedType == "base_ticket.png" ? `${TextPreset.Extra.Energy}${state.illust ? ` by ${state.illust}` : ""}`
+                : state.selectedType == "base_crest.png/ride_deck" ? `${TextPreset.Extra.Generator}${state.illust ? ` by ${state.illust}` : ""}`
                     : state.cardName,
             state.customLayers
         );
 
         setField('isSaved', result.success);
-    }, [state, lang]);
+    }, [state]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -204,6 +236,7 @@ export default function NavBar() {
             });
         }
 
+        if (!preview.success) window.alert(preview.error || "템플릿을 불러오지 못했습니다.");
         setField('isImportingPreview', false);
 
         e.target.value = "";
@@ -257,68 +290,11 @@ export default function NavBar() {
                     CFV MAKER
                 </span>
 
-                <DropdownMenu
-                    position="center"
-                    trigger={
-                        <span className="font-bold text-(--text-secondary) tracking-tight">
-                            <span className="uppercase">
-                                {lang}
-                            </span>
-
-                            {" / "}
-
-                            <span className="uppercase">
-                                {cardLang}
-                            </span>
-
-                            {" "}
-                            {version}
-                        </span>
-                    }
-                    items={[
-                        {
-                            section: t.Lang[lang],
-                            label: `English ${lang === "en" ? t.Current[lang] : ""}`,
-                            disabled: lang === "en",
-                            onClick: () => setLang("en"),
-                        },
-                        {
-                            section: t.Lang[lang],
-                            label: `ไทย ${lang === "th" ? t.Current[lang] : ""}`,
-                            disabled: lang === "th",
-                            onClick: () => setLang("th"),
-                        },
-
-                        {
-                            section: "Card Language",
-                            label: `English ${cardLang === "en" ? t.Current[lang] : ""}`,
-                            disabled: cardLang === "en",
-                            onClick: () => setCardLang("en"),
-                        },
-                        {
-                            section: "Card Language",
-                            label: `한국어 ${cardLang === "ko" ? t.Current[lang] : ""}`,
-                            disabled: cardLang === "ko",
-                            onClick: () => setCardLang("ko"),
-                        },
-                        {
-                            section: "Card Language",
-                            label: `日本語[임시] ${cardLang === "ja" ? t.Current[lang] : ""}`,
-                            disabled: cardLang === "ja",
-                            onClick: () => setCardLang("ja"),
-                        },
-                        {
-                            section: "Card Language",
-                            label: `ไทย ${cardLang === "th" ? t.Current[lang] : ""}`,
-                            disabled: cardLang === "th",
-                            onClick: () => setCardLang("th"),
-                        }
-                    ]}
-                />
+                <span className="font-bold text-(--text-secondary) tracking-tight">KO {version}</span>
                 {isLowMemory && (
                     <Tooltip
                         position="bottom"
-                        text={`${t.LowRam[lang]} (${deviceMemory}GB)`}
+                        text={`${t.LowRam} (${deviceMemory}GB)`}
                     >
                         <span className="flex items-center">
                             <WarningIcon
@@ -336,8 +312,8 @@ export default function NavBar() {
                     position="bottom"
                     text={
                         theme === 'light'
-                            ? t.DarkMode[lang]
-                            : t.LightMode[lang]
+                            ? t.DarkMode
+                            : t.LightMode
                     }
                 >
                     <button
@@ -368,8 +344,8 @@ export default function NavBar() {
                     position="bottom"
                     text={
                         state.isLocked
-                            ? t.UnlockImage[lang]
-                            : t.LockImage[lang]
+                            ? t.UnlockImage
+                            : t.LockImage
                     }
                 >
                     <button
@@ -426,7 +402,7 @@ export default function NavBar() {
                         <DocsIcon />
 
                         <span className="hidden sm:inline">
-                            {t.Docs[lang]}
+                            {t.Docs}
                         </span>
                     </Link>
                 )}
@@ -437,44 +413,44 @@ export default function NavBar() {
                             <FolderIcon />
 
                             <span className="hidden sm:inline">
-                                {t.File[lang]}
+                                {t.File}
                             </span>
                         </button>
                     }
                     items={[
                         {
-                            section: t.NewProject[lang],
-                            label: t.NewProject[lang],
+                            section: t.NewProject,
+                            label: t.NewProject,
                             icon: <PlusIcon />,
                             children: [
                                 {
-                                    label: t.Here[lang],
+                                    label: t.Here,
                                     onClick: handleNewProjectHere,
                                 },
                                 {
-                                    label: t.NewWindow[lang],
+                                    label: t.NewWindow,
                                     onClick: handleNewProjectNewWindow,
                                 }
                             ]
                         },
 
                         {
-                            section: t.Export[lang],
-                            label: t.ExportTemplate[lang],
+                            section: t.Export,
+                            label: t.ExportTemplate,
                             icon: <ZipIcon />,
                             onClick: handleExportCard,
                         },
 
                         {
-                            section: t.Export[lang],
-                            label: t.ExportIconPack[lang],
+                            section: t.Export,
+                            label: t.ExportIconPack,
                             icon: <IconPack />,
                             onClick: handleExportIcon,
                         },
 
                         {
-                            section: t.Export[lang],
-                            label: t.DownloadImage[lang],
+                            section: t.Export,
+                            label: t.DownloadImage,
                             icon: <ImageIcon />,
                             onClick: () => {
                                 setTimeout(() => {
@@ -484,7 +460,7 @@ export default function NavBar() {
 
                             children: [
                                 {
-                                    label: t.Maximum[lang],
+                                    label: t.Maximum,
                                     subtext: '2805x4090',
                                     onClick: () => {
                                         setField('exportPreset', 'max');
@@ -496,7 +472,7 @@ export default function NavBar() {
                                 },
 
                                 {
-                                    label: t.Standard[lang],
+                                    label: t.Standard,
                                     subtext: '1600x2336',
                                     onClick: () => {
                                         setField('exportPreset', 'standard');
@@ -508,7 +484,7 @@ export default function NavBar() {
                                 },
 
                                 {
-                                    label: t.Lite[lang],
+                                    label: t.Lite,
                                     subtext: '800x1168',
                                     onClick: () => {
                                         setField('exportPreset', 'lite');
@@ -522,30 +498,30 @@ export default function NavBar() {
                         },
 
                         {
-                            section: t.Import[lang],
-                            label: t.ImportTemplate[lang],
+                            section: t.Import,
+                            label: t.ImportTemplate,
                             icon: <ZipIcon />,
                             onClick: () => document.getElementById('import-file-input')?.click(),
                         },
 
                         {
-                            section: t.Import[lang],
-                            label: t.ImportIconPack[lang],
+                            section: t.Import,
+                            label: t.ImportIconPack,
                             icon: <IconPack />,
                             onClick: () => document.getElementById('icon-pack-input')?.click(),
                         },
 
                         {
-                            section: t.Import[lang],
-                            label: t.AddArt[lang],
+                            section: t.Import,
+                            label: t.AddArt,
                             icon: <ImageIcon />,
                             disabled: state.isLocked,
                             onClick: () => document.getElementById('image-file-input')?.click(),
                         },
 
                         {
-                            section: t.Import[lang],
-                            label: t.AddIcon[lang],
+                            section: t.Import,
+                            label: t.AddIcon,
                             icon: <IconSymbolIcon />,
                             onClick: () => document.getElementById('icon-pack-input')?.click(),
                         },
@@ -558,18 +534,18 @@ export default function NavBar() {
                     <div className="w-full max-w-md rounded-md bg-(--panel-bg) border border-(--panel-border) shadow-2xl flex flex-col overflow-hidden text-left">
                         <div className="border-b border-(--panel-border) bg-(--toolbar-bg) px-5 py-4">
                             <h1 className="text-base font-semibold text-(--text-primary)">
-                                {t.NewProject[lang]}
+                                {t.NewProject}
                             </h1>
                         </div>
                         <div className="px-5 py-4 text-sm text-(--text-secondary) leading-relaxed">
-                            {t.NewProjectConfirm[lang]}
+                            {t.NewProjectConfirm}
                         </div>
                         <div className="flex justify-end gap-2 px-4 py-3 border-t border-(--panel-border) bg-(--toolbar-bg) rounded-b-md">
                             <button
                                 onClick={() => setShowNewProjectConfirmModal(false)}
                                 className="px-4 py-1.5 text-sm font-medium border border-(--border-color) bg-(--bg-primary) text-(--text-primary) hover:bg-(--button-hover) rounded transition-colors"
                             >
-                                {TextPreset.UnsavedModal.cancel[lang]}
+                                {TextPreset.UnsavedModal.cancel}
                             </button>
                             <button
                                 onClick={() => {
@@ -578,7 +554,7 @@ export default function NavBar() {
                                 }}
                                 className="px-4 py-1.5 text-sm font-medium bg-(--accent) text-white rounded hover:brightness-110 transition-colors"
                             >
-                                {TextPreset.UnsavedModal.dontSave[lang]}
+                                {TextPreset.UnsavedModal.dontSave}
                             </button>
                         </div>
                     </div>

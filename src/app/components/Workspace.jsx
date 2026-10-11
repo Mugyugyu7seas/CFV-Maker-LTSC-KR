@@ -1,20 +1,36 @@
+// CFV ride-deck explanations control v1
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useCardState } from '../../../utils/store/State';
-import { useLang } from '../../../utils/LanguageProvider';
+
 import { TextPreset } from '../../../utils/store/Text';
+import { createRideDeckAbilityBlocks } from '../../../utils/RideDeckAbilities';
 import CardEditor from '../../../components/editor/CardEditor';
 import { previewZip } from '../../../utils/CardIO';
 
 export default function Workspace() {
-    const { lang, cardLang } = useLang();
+
     const { state, setField, setMultiple, setImageConfig } = useCardState();
+
+    const reportAbilityLayout = useCallback((status) => {
+        setField('abilityLayoutStatus', status);
+    }, [setField]);
+
+    const finishExport = useCallback(() => setField('exportTrigger', 0), [setField]);
 
     const t = TextPreset.Extra;
 
     const isEnergy = state.selectedType === 'base_ticket.png';
     const isCrest = state.selectedType.split('.png')[0] + '.png' === 'base_crest.png'
     const isRideDeck = state.selectedType === 'base_crest.png/ride_deck'
+
+    // This derived block never overwrites the user's ordinary ability windows.
+    const rideDeckAbilityBlocks = React.useMemo(() =>
+        isRideDeck
+            ? createRideDeckAbilityBlocks(t.GeneratorText, state.rideDeckHideExplanations ?? false)
+            : undefined,
+        [isRideDeck, t.GeneratorText, state.rideDeckHideExplanations]
+    );
 
     const [isDragging, setIsDragging] = useState(false);
     const [isDraggingZip, setIsDraggingZip] = useState(false);
@@ -81,6 +97,7 @@ export default function Workspace() {
                     showImportModal: true,
                 });
             } else {
+                window.alert(preview.error || "템플릿을 불러오지 못했습니다.");
             }
             setField('isImportingPreview', false);
         } else if (file.type.startsWith('image/')) {
@@ -113,9 +130,9 @@ export default function Workspace() {
             <div className="relative group max-w-full flex items-center justify-center m-auto">
                 <div className={`${isCrest ? "scale-[0.68]" : "scale-[0.75]"} bottom-10 sm:scale-90 md:scale-100 md:bottom-0 origin-center relative shadow-2xl bg-transparent transition-transform duration-300`}>
                     <CardEditor
-                        key={cardLang}
-                        lang={cardLang}
-                        overlayCardName={isEnergy ? t.Energy[lang] : isRideDeck ? t.Generator[lang] : state.cardName}
+
+
+                        overlayCardName={isEnergy ? t.Energy : isRideDeck ? t.Generator : state.cardName}
                         overlayNation={state.selectedNation}
                         overlayClan={state.clan}
                         overlayType={state.selectedType}
@@ -126,12 +143,16 @@ export default function Workspace() {
                         overlayRaceText={state.raceText}
                         raceCheck={state.raceCheck}
                         overlayGrade={state.grade}
+                        gradeNumberStyle={state.gradeNumberStyle}
                         overlayPower={state.power}
                         overlayShieldValue={state.shield}
                         shieldCheck={state.shieldCheck}
                         overlayIllust={state.illust}
                         overlayFlavor={state.flavor}
-                        overlayAbilities={isRideDeck ? state.isFullArt ? t.GeneratorText[lang].replace(/\s*\*\([^)]*\)\*/g, "") : t.GeneratorText[lang] : state.abilities}
+                        abilityBlocks={isRideDeck ? rideDeckAbilityBlocks : state.abilityBlocks}
+                        onAbilityLayoutChange={reportAbilityLayout}
+                        abilitySpacingAdjust={state.abilitySpacingAdjust ?? 0}
+                        overlayAbilities={isRideDeck ? t.GeneratorText : state.abilities}
                         overlayAddition={state.addition}
                         isFullArt={state.isFullArt}
                         showGlobe={state.showGlobe}
@@ -150,9 +171,9 @@ export default function Workspace() {
                         imageSrc={state.imageSrc}
                         exportTrigger={state.exportTrigger}
                         exportPreset={state.exportPreset}
-                        onImageConfigChange={(e) => setImageConfig(e)}
+                        onImageConfigChange={setImageConfig}
                         initialImageConfig={state.imageConfig}
-                        onExportEnd={() => setField('exportTrigger', 0)}
+                        onExportEnd={finishExport}
                     />
                 </div>
             </div>

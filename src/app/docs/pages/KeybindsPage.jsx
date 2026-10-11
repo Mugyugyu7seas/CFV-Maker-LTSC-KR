@@ -1,12 +1,12 @@
 "use client";
 
-import { useLang } from "../../../../utils/LanguageProvider";
+
 import { TextPreset } from "../../../../utils/store/Text";
 import { KeyboardIcon } from "../../../../components/Icon";
 import { useState } from "react";
 
 export default function KeybindsPage() {
-  const { lang } = useLang();
+
   const t = TextPreset.KeybindsPage;
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -17,24 +17,24 @@ export default function KeybindsPage() {
 
   const filteredFileActions = fileActionShortcuts.filter(
     (s) =>
-      s.name[lang].toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.desc[lang].toLowerCase().includes(searchTerm.toLowerCase())
+      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.desc.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredTextFormatting = textFormattingShortcuts.filter(
     (s) =>
-      s.name[lang].toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.desc[lang].toLowerCase().includes(searchTerm.toLowerCase())
+      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.desc.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const ShortcutRow = ({ shortcut }) => (
     <div className="flex items-center justify-between bg-(--bg-secondary) px-6 py-4 hover:bg-(--panel-bg) transition-colors">
       <div className="flex-1 min-w-0">
         <div className="text-base font-semibold text-(--text-primary) mb-1">
-          {shortcut.name[lang]}
+          {shortcut.name}
         </div>
         <div className="text-sm text-(--text-secondary)">
-          {shortcut.desc[lang]}
+          {shortcut.desc}
         </div>
       </div>
 
@@ -59,7 +59,7 @@ export default function KeybindsPage() {
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-3">
           <KeyboardIcon size={28} />
-          <h1 className="text-xl font-bold">{t.title[lang]}</h1>
+          <h1 className="text-xl font-bold">{t.title}</h1>
         </div>
       </div>
 
@@ -68,7 +68,7 @@ export default function KeybindsPage() {
         <div className="relative">
           <input
             type="text"
-            placeholder={t.SearchBar[lang]}
+            placeholder={t.SearchBar}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-(--card-bg) border border-(--panel-border) rounded-lg px-4 py-2.5 text-(--text-primary) placeholder:text-(--text-secondary) focus:outline-none focus:border-(--accent) transition-colors"
@@ -79,8 +79,8 @@ export default function KeybindsPage() {
       {/* File Actions Section */}
       {filteredFileActions.length > 0 && (
         <div className="mb-8">
-          <div className={`${lang !== 'en' ? "text-sm" : "text-xs"} uppercase tracking-widest text-(--text-secondary) font-semibold mb-4 ml-1`}>
-            {t.fileActions[lang]}
+          <div className={`${"text-xs"} uppercase tracking-widest text-(--text-secondary) font-semibold mb-4 ml-1`}>
+            {t.fileActions}
           </div>
           <div className="space-y-px bg-(--border-color) rounded-xl overflow-hidden border border-(--panel-border)">
             {filteredFileActions.map((shortcut) => (
@@ -93,8 +93,8 @@ export default function KeybindsPage() {
       {/* Text Formatting Section */}
       {filteredTextFormatting.length > 0 && (
         <div>
-          <div className={`${lang !== 'en' ? "text-sm" : "text-xs"} uppercase tracking-widest text-(--text-secondary) font-semibold mb-4 ml-1`}>
-            {t.textFormatting[lang]}
+          <div className={`${"text-xs"} uppercase tracking-widest text-(--text-secondary) font-semibold mb-4 ml-1`}>
+            {t.textFormatting}
           </div>
           <div className="space-y-px bg-(--border-color) rounded-xl overflow-hidden border border-(--panel-border)">
             {filteredTextFormatting.map((shortcut) => (
@@ -108,7 +108,7 @@ export default function KeybindsPage() {
       {filteredFileActions.length === 0 && filteredTextFormatting.length === 0 && (
         <div className="text-center py-12">
           <div className="text-(--text-secondary) text-sm">
-            {t.NoResults[lang]}
+            {t.NoResults}
           </div>
         </div>
       )}

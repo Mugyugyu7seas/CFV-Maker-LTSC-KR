@@ -1,7 +1,7 @@
 let measureCanvas = null;
 
-export const getFontStyle = (italic, dark, lang) => {
-  if (dark || lang == "th") {
+export const getFontStyle = (italic, dark) => {
+  if (dark) {
     return italic ? "italic 500" : "500";
   }
   return italic ? "italic bold" : "bold";

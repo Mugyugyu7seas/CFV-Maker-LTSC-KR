@@ -1,24 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useLang } from "../../../../utils/LanguageProvider";
+
 import { TextPreset } from "../../../../utils/store/Text";
 import { ZipIcon, ImageIcon, IconPack, InfoIcon } from "../../../../components/Icon";
 
 export default function IconPacks() {
-  const { lang } = useLang();
+
   const t = TextPreset.IconPacksPage;
 
   const importMethods = [
     { 
       icon: <ImageIcon size={18} />, 
       label: "Image", 
-      desc: t.methodImageDesc[lang] 
+      desc: t.methodImageDesc
     },
     { 
       icon: <ZipIcon size={20} />, 
       label: "Icon Pack", 
-      desc: t.methodPackDesc[lang] 
+      desc: t.methodPackDesc
     },
   ];
 
@@ -27,38 +27,38 @@ export default function IconPacks() {
       <div className="bg-(--card-bg) border border-(--panel-border) rounded-2xl p-7 mb-7 shadow-(--card-shadow)">
         <div className="flex items-center gap-3 text-2xl font-bold mb-2">
           <IconPack size={28} className="text-(--text-primary)" />
-          {t.IconPack[lang]}
+          {t.IconPack}
         </div>
         <p className={`text-(--text-secondary) text-base leading-relaxed`}>
-          {t.desc[lang]}
+          {t.desc}
         </p>
       </div>
 
       <div className="mb-8">
         <div className="flex items-center gap-2 text-lg font-semibold mb-3">
           <InfoIcon size={24} />
-          {t.WhatYouCanDo[lang]}
+          {t.WhatYouCanDo}
         </div>
         <div className={`bg-(--bg-secondary) rounded-xl p-5 text-base text-(--text-secondary) leading-relaxed border border-(--border-color)`}>
           <ul className="space-y-4">
             <li className="flex items-start gap-3">
               <span className="text-(--accent) shrink-0">✦</span>
-              <p><strong>{t.freeControlTitle[lang]}</strong>{t.freeControlDesc[lang]}</p>
+              <p><strong>{t.freeControlTitle}</strong>{t.freeControlDesc}</p>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-(--accent) shrink-0">✦</span>
               <p>
-                <strong>{t.variantSupportTitle[lang]}</strong>{t.variantSupportDesc1[lang]}
+                <strong>{t.variantSupportTitle}</strong>{t.variantSupportDesc1}
                 <Link href="/docs?section=icons-symbols&scroll=varaints" className="hover:underline">
                   <code className="bg-(--bg-primary) px-1.5 py-0.5 rounded text-xs text-(--text-primary)">
                     @variants
                   </code>
-                </Link>{t.variantSupportDesc2[lang]}
+                </Link>{t.variantSupportDesc2}
               </p>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-(--accent) shrink-0">✦</span>
-              <p><strong>{t.permanentAssetsTitle[lang]}</strong>{t.permanentAssetsDesc[lang]}</p>
+              <p><strong>{t.permanentAssetsTitle}</strong>{t.permanentAssetsDesc}</p>
             </li>
           </ul>
         </div>
@@ -67,7 +67,7 @@ export default function IconPacks() {
       <div className="mb-8">
         <div className="flex items-center gap-2 text-lg font-semibold mb-3">
           <IconPack size={24} />
-          {t.HowToImport[lang]}
+          {t.HowToImport}
         </div>
         <div className="space-y-1">
           {importMethods.map((method, idx) => (
@@ -85,12 +85,12 @@ export default function IconPacks() {
       <div className="mb-4">
         <div className="flex items-center gap-1.75 text-lg font-semibold mb-2">
           <ZipIcon size={22} />
-          {t.zip[lang]}
+          {t.zip}
         </div>
         <p className={`text-(--text-secondary) mb-4 leading-relaxed text-base`}>
-          {t.zipDesc[lang]}
+          {t.zipDesc}
           <code className="text-xs bg-(--bg-secondary) px-1.5 py-0.5 rounded border border-(--border-color)">.zip</code>
-          {t.zipDesc_2[lang]}
+          {t.zipDesc_2}
         </p>
         <div className="bg-(--bg-secondary) rounded-xl p-5 border border-(--border-color) overflow-x-auto">
           <code className="text-xs block whitespace-pre font-mono text-(--text-primary) leading-relaxed">

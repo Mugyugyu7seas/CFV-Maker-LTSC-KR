@@ -1,3 +1,4 @@
+// CFV hide-explanations and SEC UI v1
 "use client";
 
 import { Group, Text, Line } from "react-konva";
@@ -5,14 +6,13 @@ import React, {
   useMemo,
   useState,
   useEffect,
+  useLayoutEffect,
   memo,
   useRef,
   useCallback
 } from "react";
 
 import {
-  ParseTokens,
-  JustifyLine,
   getTextWidth,
   getFontStyle
 } from "./text";
@@ -23,22 +23,23 @@ import {
   KeywordImage
 } from "./icon";
 
+import { layoutAbilities } from "./text/LayoutAbilities";
 import LRUCache from "../../utils/LRUCache";
+import { CARD_TYPOGRAPHY } from "../../utils/store/Typography";
+import {
+  usesSpAbilityText,
+  getAbilityTextColor,
+  getAbilityTextOutline,
+  getAbilityUnderlineOutline,
+} from "../../utils/AbilityTextStyle";
 
-const segmenter = new Intl.Segmenter(["th", "ja"], { granularity: "word" });
-
-const renderTextWithStroke = (textNode, fullArt, dark) => {
-  if (!fullArt) return textNode;
+const renderTextWithStroke = (textNode, spText) => {
+  const outline = getAbilityTextOutline(spText);
+  if (!outline) return textNode;
 
   return (
     <Group>
-      {React.cloneElement(textNode, {
-        stroke: dark ? "black" : "white",
-        strokeWidth: 1.5,
-        fill: undefined,
-        listening: false,
-        lineJoin: "round",
-      })}
+      {React.cloneElement(textNode, outline)}
       {textNode}
     </Group>
   );
@@ -50,16 +51,24 @@ const RenderLine = memo(({
   lineHeight,
   fontSize,
   font,
+  lightFont,
+  bodyLightYOffset,
+  bodyScaleX,
+  bodyScaleY,
+  bodyYOffset,
+  letterSpacing,
   dark,
-  fullArt,
-  lang,
+  spText,
   iconWidths,
   getNodeWidth,
   handleIconWidthReady,
   ICON_CONFIG
 }) => {
-  const underlineOffset = fontSize - (lang == "en" ? 1 : 2);
-  const iconUnderlineYShift = (lang == "en" ? -1 : 4);
+
+
+  const underlineOffset = fontSize - (1);
+  const iconUnderlineYShift = -1;
+  const underlineOutline = getAbilityUnderlineOutline(spText);
 
   return (
     <Group y={lineIdx * lineHeight}>
@@ -70,7 +79,7 @@ const RenderLine = memo(({
         const underlineLayer =
           node.underline && (
             <Group key={`u-${elementKey}`} y={0.75}>
-              {fullArt && (
+              {underlineOutline && (
                 <Line
                   points={[
                     node.x,
@@ -78,9 +87,7 @@ const RenderLine = memo(({
                     node.x + renderWidth,
                     underlineOffset
                   ]}
-                  stroke={dark ? "black" : "white"}
-                  strokeWidth={2}
-                  listening={false}
+                  {...underlineOutline}
                 />
               )}
 
@@ -91,24 +98,33 @@ const RenderLine = memo(({
                   node.x + renderWidth,
                   underlineOffset
                 ]}
-                stroke={node.color || (dark ? "white" : "black")}
+                stroke={getAbilityTextColor(node, { dark, spText })}
                 strokeWidth={1}
                 listening={false}
               />
             </Group>
           );
 
+        // Local SP text and card SP share the same effective content mode.
+        // Keep dark unchanged here; each icon resolves its visual Encounter mode.
         let iconContent = null;
-        const iconY = node.underline ? iconUnderlineYShift : 0 + (lang == "en" ? 0 : 4);
+        // node.x is the layout slot edge. Keep the margin when justification
+        // recomputes x, and move the icon plus its SP mask together.
+        const iconX = node.x + (node.iconSpacingBefore ?? 0);
+        const iconY =
+          node.underline
+            ? iconUnderlineYShift
+            : (0);
 
         if (node.type === "dynamic_icon") {
           iconContent = (
-            <Group x={node.x} y={iconY}>
+            <Group x={iconX} y={iconY}>
               <IconGenerator
                 {...node}
                 dark={dark}
-                fullArt={fullArt}
+                fullArt={spText}
                 lineHeight={lineHeight}
+
                 onWidthReady={(w) =>
                   handleIconWidthReady(node.cacheKey, w)
                 }
@@ -117,12 +133,13 @@ const RenderLine = memo(({
           );
         } else if (node.type === "plain_icon") {
           iconContent = (
-            <Group x={node.x} y={iconY}>
+            <Group x={iconX} y={iconY}>
               <PlainIcon
                 {...node}
                 dark={dark}
-                fullArt={fullArt}
+                fullArt={spText}
                 lineHeight={lineHeight}
+
                 onWidthReady={(w) =>
                   handleIconWidthReady(node.cacheKey, w)
                 }
@@ -130,50 +147,86 @@ const RenderLine = memo(({
             </Group>
           );
         } else if (node.type === "icon") {
-          iconContent = (
-            <KeywordImage
-              src={node.src}
-              x={node.x}
-              y={iconY}
-              tintColor={node.meta.tintColor}
-              targetHeight={node.meta.iconHeight || 11}
-              lineHeight={lineHeight}
-              dark={dark}
-              fullArt={fullArt}
-              yOffset={node.meta.iconYOffset || 0}
-              onSizeLoaded={(s) => {
-                const calculatedWidth =
-                  s.width * ((node.meta.iconHeight || 11) / s.height);
+  const isBracketIcon =
+  node.keyword === "{" || node.keyword === "}";
 
-                handleIconWidthReady(node.cacheKey, calculatedWidth);
-              }}
-            />
-          );
-        }
+  let styledSrc = node.src;
+
+  if (
+    isBracketIcon &&
+    node.color === "#ff0000"
+  ) {
+    const baseSrc = node.src.split("@")[0];
+    styledSrc = `${baseSrc}@red`;
+  }
+
+  iconContent = (
+    <Group x={iconX}>
+
+      <KeywordImage
+        src={styledSrc}
+        x={0}
+        y={iconY}
+        tintColor={node.meta.tintColor}
+        targetHeight={node.meta.iconHeight || 11}
+        lineHeight={lineHeight}
+
+        dark={dark}
+        fullArt={spText}
+        yOffset={node.meta.iconYOffset || 0}
+        onSizeLoaded={(s) => {
+          const calculatedWidth =
+            s.width * ((node.meta.iconHeight || 11) / s.height);
+
+          handleIconWidthReady(node.cacheKey, calculatedWidth);
+        }}
+      />
+    </Group>
+  );
+}
 
         let textContent = null;
 
         if (node.type === "text") {
-          const fontStyle = getFontStyle(node.italic, dark, lang);
+          const isAnnotation =
+            node.annotation;
+
+          const fontStyle = isAnnotation
+            ? "normal"
+            : getFontStyle(node.italic, dark);
+
+          const renderFont =
+            isAnnotation && lightFont
+              ? lightFont
+              : font;
+
+          const renderColor = getAbilityTextColor(node, { dark, spText });
 
           const baseText = (
             <Text
               text={node.text}
               x={node.x}
-              y={1 + (lang == "en" ? 0 : 1)}
-              scaleY={0.9}
+              y={
+                1 + (isAnnotation ? bodyLightYOffset : 0)
+              }
+              scaleX={bodyScaleX}
+              scaleY={bodyScaleY}
               fontSize={fontSize}
-              fontFamily={font}
+              fontFamily={renderFont}
               fontStyle={fontStyle}
-              fill={node.color}
-              letterSpacing={node.letterSpacing || 0}
+              fill={renderColor}
+              letterSpacing={
+                (node.letterSpacing || 0)
+                + letterSpacing
+                + (node.justifyLetterSpacing || 0)
+              }
               width={node.isExpandedSpace ? node.width : undefined}
               perfectDrawEnabled={false}
               listening={false}
             />
           );
 
-          textContent = renderTextWithStroke(baseText, fullArt, dark);
+          textContent = renderTextWithStroke(baseText, spText);
         }
         return (
           <Group key={elementKey}>
@@ -188,23 +241,39 @@ const RenderLine = memo(({
 });
 
 function AbilitiesOutput({
-  lang = "en",
+
   text = "",
   x = 0,
   y = 0,
-  font = 'Columbia',
-  lineHeight = 14.67,
-  fontSize = 11,
+  font = CARD_TYPOGRAPHY.bodyFont,
+  lightFont = CARD_TYPOGRAPHY.bodyLightFont,
+  lineHeight = CARD_TYPOGRAPHY.bodyLineHeight,
+  fontSize = CARD_TYPOGRAPHY.bodyFontSize,
+  bodyScaleX = CARD_TYPOGRAPHY.bodyScaleX,
+  bodyScaleY = CARD_TYPOGRAPHY.bodyScaleY,
+  bodyYOffset = CARD_TYPOGRAPHY.bodyYOffset,
+  bodyLightYOffset = CARD_TYPOGRAPHY.bodyLightYOffset,
+  bodyWordSpacing = CARD_TYPOGRAPHY.bodyWordSpacing,
+  letterSpacing = CARD_TYPOGRAPHY.bodyLetterSpacing,
+  bodyJustify = CARD_TYPOGRAPHY.bodyJustify,
   onLinesChange = null,
-  maxLines = 14,
+  onLayoutChange = null,
+  maxLines = CARD_TYPOGRAPHY.abilityLines,
   configVersion = 0,
   ICON_CONFIG,
   dark,
   fullArt,
+  useSpTextStyle = false,
+  hideExplanations = false,
   MAX_WIDTH = 370,
   isMobile = false,
-  isCrest = false
+  isCrest = false,
 }) {
+
+
+
+  // Appearance only: do not pass spText into text measurement or line layout.
+  const spText = usesSpAbilityText({ fullArt, useSpTextStyle });
 
   const [iconWidths, setIconWidths] = useState({});
   const [localVersion, setLocalVersion] = useState(0);
@@ -237,7 +306,7 @@ function AbilitiesOutput({
     if (node.adjustedWidth) return node.adjustedWidth;
 
     if (node.type === "text") {
-      const style = getFontStyle(node.italic, dark, lang);
+      const style = getFontStyle(node.italic, dark);
 
       const base = getTextWidth(
         node.text,
@@ -246,22 +315,41 @@ function AbilitiesOutput({
         font
       );
 
-      return node.letterSpacing
-        ? base + node.letterSpacing * (node.text.length - 1)
-        : base;
+      const isSpace = /^\s+$/.test(node.text);
+
+      const effectiveLetterSpacing =
+        (node.letterSpacing || 0)
+        + letterSpacing
+        + (node.justifyLetterSpacing || 0);
+
+      if (isSpace) {
+        return node.width ?? ((base * bodyScaleX) + bodyWordSpacing);
+      }
+
+      return (
+        base
+        + effectiveLetterSpacing * Math.max(0, node.text.length - 1)
+      ) * bodyScaleX;
     }
 
     return 0;
-  }, [dark, fontSize, font, lang]);
+ }, [
+  dark,
+  fontSize,
+  font,
+  letterSpacing,
+  bodyWordSpacing,
+  bodyScaleX,
+]);
 
-  const measureTextForJustify = useCallback((wordText, currentFontSize) => {
-    const style = getFontStyle(false, dark, lang);
-    return getTextWidth(wordText, currentFontSize, style, font);
-  }, [dark, lang, font]);
 
-  const handleIconWidthReady = useCallback((key, width) => {
+/*  const handleIconWidthReady = useCallback((key, width) => {
     let finalWidth = fullArt ? width + 0.5 : width;
     const w = normalizeWidth(finalWidth);
+    const cached = iconCacheRef.current.get(key);
+*/ // 원래 SP에서 자간 0.5 더 확보하는데 정렬이랑 충돌해서 봉인, 아래 코드 2줄로 대체.
+  const handleIconWidthReady = useCallback((key, width) => {
+    const w = normalizeWidth(width);
     const cached = iconCacheRef.current.get(key);
 
     if (cached != null && Math.abs(cached - w) < 0.25) {
@@ -271,188 +359,37 @@ function AbilitiesOutput({
     iconCacheRef.current.set(key, w);
     pendingUpdatesRef.current[key] = w;
 
-    if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+
     const delay = isMobile ? 32 : 16;
+
     updateTimeoutRef.current = setTimeout(() => {
       setIconWidths(prev => ({
         ...prev,
         ...pendingUpdatesRef.current
       }));
+
       pendingUpdatesRef.current = {};
     }, delay);
-  }, [normalizeWidth, fullArt, isMobile]);
+  }, [normalizeWidth, isMobile]);
 
-  const allLines = useMemo(() => {
-    const rawParagraphs = text.split("\n");
-
-    let lines = [];
-    let currentLine = [];
-    let offsetX = 0;
-    let nodeCounter = 0;
-
-    const pushLine = (forceJustify = false) => {
-      if (!currentLine.length || lines.length >= maxLines) {
-        return;
-      }
-
-      while (
-        currentLine.length &&
-        currentLine[currentLine.length - 1].type === "text" &&
-        /^\s+$/.test(currentLine[currentLine.length - 1].text)
-      ) {
-        currentLine.pop();
-      }
-
-      if (!currentLine.length) return;
-
-      const totalW = currentLine.reduce(
-        (a, n) => a + (n.width || 0),
-        0
-      );
-
-      lines.push(
-        forceJustify || totalW > MAX_WIDTH * 0.98
-          ? JustifyLine(
-            currentLine,
-            MAX_WIDTH,
-            fontSize,
-            measureTextForJustify
-          )
-          : [...currentLine]
-      );
-
-      currentLine = [];
-      offsetX = 0;
-    };
-
-    for (const paraRaw of rawParagraphs) {
-      if (lines.length >= maxLines) break;
-
-      const isForce = paraRaw.includes("\\j");
-      const para = paraRaw.replace(/\\j/g, "");
-
-      const tokens = ParseTokens(
-        para,
-        ICON_CONFIG,
-        dark
-      );
-
-      for (const token of tokens) {
-        if (lines.length >= maxLines) break;
-
-        if (["dynamic_icon", "plain_icon", "icon"].includes(token.type)) {
-          const key =
-            token.type === "icon"
-              ? `${token.src}_${token.meta.iconHeight || 11}`
-              : token.type === "plain_icon"
-                ? `plain_${token.prefix}_${token.meta?.iconHeight || token.height || 11}`
-                : `${token.prefix}_${token.value}_${token.meta?.iconHeight || token.height || 11}`;
-
-          const rawWidth = iconWidths[key] ?? 20;
-          const width = rawWidth + 1;
-
-          if (offsetX + width > MAX_WIDTH) {
-            pushLine(true);
-          }
-
-          currentLine.push({
-            ...token,
-            id: `${token.type}-${nodeCounter}`,
-            x: offsetX,
-            width,
-            cacheKey: key
-          });
-
-          offsetX += width;
-          nodeCounter++;
-          continue;
-        }
-
-        if (token.type === "text") {
-          for (const p of token.parts) {
-            const style = getFontStyle(
-              p.italic,
-              dark,
-              lang
-            );
-
-            const hasCjkOrThai = /[\u0E00-\u0E7F\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(p.text);
-
-            let words = [];
-            if (hasCjkOrThai) {
-              const segments = segmenter.segment(p.text);
-              words = Array.from(segments).map(s => s.segment);
-            } else {
-              words = p.text.split(/(\s+)/);
-            }
-
-            for (const word of words) {
-              if (!word) continue;
-
-              const w = getTextWidth(
-                word,
-                fontSize,
-                style,
-                font
-              );
-
-              const isSpace = /^\s+$/.test(word);
-
-              if (offsetX + w > MAX_WIDTH) {
-                if (isSpace) {
-                  pushLine(true);
-                } else {
-                  pushLine(true);
-                  currentLine.push({
-                    ...p,
-                    id: `node-${nodeCounter}`,
-                    type: "text",
-                    text: word,
-                    x: 0,
-                    width: w
-                  });
-                  offsetX = w;
-                }
-              } else {
-                if (offsetX === 0 && isSpace) {
-                  continue;
-                }
-
-                currentLine.push({
-                  ...p,
-                  id: `node-${nodeCounter}`,
-                  type: "text",
-                  text: word,
-                  x: offsetX,
-                  width: w
-                });
-
-                offsetX += w;
-              }
-
-              nodeCounter++;
-            }
-          }
-        }
-      }
-
-      pushLine(isForce);
-    }
-
-    return lines;
-  }, [
-    text,
-    fontSize,
-    iconWidths,
-    dark,
-    configVersion,
-    localVersion,
-    maxLines,
-    MAX_WIDTH,
-    ICON_CONFIG,
-    lang,
-    font,
+  const layout = useMemo(() => layoutAbilities({
+    text, fontSize, iconWidths, dark, ICON_CONFIG, MAX_WIDTH, hideExplanations,
+    font, lightFont, bodyScaleX, letterSpacing, bodyWordSpacing, bodyJustify,
+  }), [
+    text, fontSize, iconWidths, dark, configVersion, localVersion, hideExplanations,
+    MAX_WIDTH, ICON_CONFIG, font, lightFont, bodyScaleX,
+    letterSpacing, bodyWordSpacing, bodyJustify,
   ]);
+  const allLines = layout.lines;
+
+  // Report the rows already calculated above before the next paint so the
+  // background, neighbouring windows and flavour move with the new text.
+  useLayoutEffect(() => {
+    onLayoutChange?.({ lineCount: layout.lineCount, widthOverflow: layout.widthOverflow });
+  }, [layout.lineCount, layout.widthOverflow, onLayoutChange]);
 
   useEffect(() => {
     if (prevLineCountRef.current !== allLines.length) {
@@ -467,13 +404,14 @@ function AbilitiesOutput({
     <Group
       x={x}
       y={
-        isCrest
-          ? y - (totalHeight / 2)
-          : y - totalHeight
+        (
+          isCrest
+            ? y - (totalHeight / 2)
+            : y - totalHeight
+        ) + bodyYOffset
       }
     >
       {allLines
-        .slice(0, maxLines)
         .map((line, lineIdx) => (
           <RenderLine
             key={`line-${lineIdx}`}
@@ -482,9 +420,15 @@ function AbilitiesOutput({
             lineHeight={lineHeight}
             fontSize={fontSize}
             font={font}
+            lightFont={lightFont}
+            bodyScaleX={bodyScaleX}
+            bodyScaleY={bodyScaleY}
+            bodyYOffset={bodyYOffset}
+            bodyLightYOffset={bodyLightYOffset}
+            letterSpacing={letterSpacing}
             dark={dark}
-            fullArt={fullArt}
-            lang={lang}
+            spText={spText}
+
             iconWidths={iconWidths}
             getNodeWidth={getNodeWidth}
             handleIconWidthReady={handleIconWidthReady}

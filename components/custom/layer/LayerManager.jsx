@@ -9,12 +9,12 @@ import {
   TrashIcon
 } from "../../Icon";
 
-import { useLang } from "../../../utils/LanguageProvider";
+
 import { TextPreset } from '../../../utils/store/Text';
 import Tooltip from "../../Tooltip";
 
 export default function LayerManager({ layers, setLayers, fileInputRef, isCrest }) {
-  const { lang } = useLang();
+
   const t = TextPreset.LayerManager;
   const [draggedLayerId, setDraggedLayerId] = useState(null);
   const [dropIndex, setDropIndex] = useState(null);
@@ -152,8 +152,8 @@ export default function LayerManager({ layers, setLayers, fileInputRef, isCrest 
             }`}
         />
         <span
-          className={`${lang == "en" ? "text-[11px]" : "text-[13.5px]"} font-bold uppercase transition-colors ${isDraggingFile ? "text-(--accent)" : "text-(--text-secondary) group-hover:text-(--accent)"}`}>
-          {isDraggingFile ? TextPreset.IconManager.Drop[lang] : TextPreset.IconManager.ClickDrop[lang]}{isCrest ? " (73:50)" : " (50:73)"}
+          className={`${"text-[11px]"} font-bold uppercase transition-colors ${isDraggingFile ? "text-(--accent)" : "text-(--text-secondary) group-hover:text-(--accent)"}`}>
+          {isDraggingFile ? TextPreset.IconManager.Drop : TextPreset.IconManager.ClickDrop}{isCrest ? " (73:50)" : " (50:73)"}
         </span>
       </label>
 
@@ -219,7 +219,7 @@ export default function LayerManager({ layers, setLayers, fileInputRef, isCrest 
                 </div>
 
                 <div className="flex items-center ml-2 shrink-0">
-                  <Tooltip text={layer.visible ? t.hide[lang] : t.show[lang]}>
+                  <Tooltip text={layer.visible ? t.hide : t.show}>
                     <button
                       onClick={() => {
                         setLayers((prev) =>
@@ -241,7 +241,7 @@ export default function LayerManager({ layers, setLayers, fileInputRef, isCrest 
                     </button>
                   </Tooltip>
 
-                  <Tooltip text={TextPreset.IconManager.Delete[lang]}>
+                  <Tooltip text={TextPreset.IconManager.Delete}>
                     <button
                       onClick={() => {
                         setLayers((prev) => prev.filter((l) => l.id !== layer.id));
